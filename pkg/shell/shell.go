@@ -72,15 +72,15 @@ func (shell *Shell) Handle(command string, handler Handler) {
 
 func (shell *Shell) HandleFunction(command string, fn HandlerFunction) {
 	shell.setup()
-	shell.router.Handle(command, fn)
+	shell.router.HandleFunction(command, fn)
 }
 
-func (shell *Shell) Help(handler HandlerFunction) {
+func (shell *Shell) Help(handler Handler) {
 	shell.setup()
 	shell.router.Help(handler)
 }
 
-func (shell *Shell) NotFound(handler HandlerFunction) {
+func (shell *Shell) NotFound(handler Handler) {
 	shell.setup()
 	shell.router.NotFound(handler)
 }
@@ -121,7 +121,8 @@ func (shell *Shell) Start(ctx context.Context) error {
 			err := shell.execute(ctx, strings.Split(input, " "))
 			if err != nil {
 				fmt.Fprintf(shell.errorWriter, "%v\n", err)
-				return err
+				close(shell.closed)
+				return err // TODO : option to exit on error for shell
 			}
 		}
 	}

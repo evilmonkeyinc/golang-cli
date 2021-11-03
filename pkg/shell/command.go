@@ -13,7 +13,7 @@ type Command struct {
 
 func (command *Command) Execute(writer ResponseWriter, request Request) error {
 	if command.Function == nil {
-		return errors.CommandNotFound
+		return errors.CommandNotFound(command.Name)
 	}
 
 	return command.Function(writer, request)

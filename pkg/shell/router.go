@@ -1,7 +1,6 @@
 package shell
 
 import (
-	"fmt"
 	"strings"
 
 	"github.com/evilmonkeyinc/golang-cli/pkg/errors"
@@ -15,8 +14,8 @@ type Router interface {
 	Route(string, func(r Router)) Router
 	Handle(string, Handler)
 	HandleFunction(string, HandlerFunction)
-	Help(HandlerFunction)
-	NotFound(HandlerFunction)
+	Help(Handler)
+	NotFound(Handler)
 }
 
 type Routes interface {
@@ -28,65 +27,64 @@ type Routes interface {
 // newRouter will return a new empty router
 func newRouter() *router {
 	return &router{
-		subRouters: []Router{},
-		handlers:   map[string]Handler{},
-		middleware: []Middleware{},
+		children:        []Router{},
+		handlers:        map[string]Handler{},
+		middleware:      []Middleware{},
+		parent:          nil,
+		helpHander:      nil,
+		notFoundHandler: nil,
 	}
 }
 
-// subRouter will create a new sub router for the supplied router
-func subRouter(rtr *router) *router {
+// childRouter will create a new sub router as an inline group router
+func childRouter(rtr *router) *router {
 	return &router{
-		subRouters:      []Router{},
 		handlers:        map[string]Handler{},
 		middleware:      []Middleware{},
+		parent:          rtr,
+		children:        []Router{},
+		helpHander:      rtr.helpHander,
+		notFoundHandler: rtr.notFoundHandler,
+	}
+}
+
+// subRouter will create a new sub router as a sub command router
+func subRouter(rtr *router) *router {
+	return &router{
+		handlers:        map[string]Handler{},
+		middleware:      []Middleware{},
+		parent:          nil,
+		children:        []Router{},
 		helpHander:      rtr.helpHander,
 		notFoundHandler: rtr.notFoundHandler,
 	}
 }
 
 type router struct {
-	subRouters []Router
 	handlers   map[string]Handler
 	middleware []Middleware
 
-	helpHander      HandlerFunction
-	notFoundHandler HandlerFunction
+	parent   Router
+	children []Router
+
+	helpHander      Handler
+	notFoundHandler Handler
 }
 
 func (rtr *router) Execute(writer ResponseWriter, request Request) error {
 	// TODO : flag logic
+	// needs to use interface so can support pflags AND standard flags
 
 	args := request.Args()
-	routes := request.Routes()
-
-	var toExecute Handler
-	if handler, found := rtr.Match(request.Args()); found {
-		args = request.Args()[1:]
-		toExecute = handler
-		routes = rtr
+	if handler, found := rtr.Match(args); found {
+		request = request.WithArgs(args[1:]).WithRoutes(rtr)
+		return handler.Execute(writer, request)
 	}
 
-	if toExecute == nil && rtr.notFoundHandler != nil {
-		toExecute = rtr.notFoundHandler
-	}
-	if toExecute == nil && rtr.helpHander != nil {
-		toExecute = rtr.helpHander
-	}
+	if rtr.notFoundHandler != nil {
+		handler := chain(rtr.middleware, rtr.notFoundHandler)
+		return handler.Execute(writer, request)
 
-	if toExecute != nil {
-		request = request.WithArgs(args).WithRoutes(routes)
-
-		if len(rtr.middleware) > 0 {
-			handlerFunc := toExecute
-			handlerFunc = rtr.middleware[len(rtr.middleware)-1](handlerFunc)
-			for i := len(rtr.middleware) - 2; i >= 0; i-- {
-				handlerFunc = rtr.middleware[i](handlerFunc)
-			}
-			return handlerFunc.Execute(writer, request)
-		} else {
-			return toExecute.Execute(writer, request)
-		}
 	}
 
 	return nil
@@ -105,16 +103,23 @@ func (rtr *router) Match(args []string) (Handler, bool) {
 		return nil, false
 	}
 
+	// TODO : check args if this is a help request
+	// if help arg then return current help
+	// if help flag, identify possible sub router and call help there
+	// if help is called but a handler is also found, then we need to
+	// let help have access to it so it can display command specific help information
+	// Should help be middleware?
+
 	arg := args[0]
 	for key, handler := range rtr.handlers {
 		if strings.EqualFold(arg, key) {
-			return handler, true
+			return chain(rtr.middleware, handler), true
 		}
 	}
 
-	for _, sub := range rtr.subRouters {
+	for _, sub := range rtr.children {
 		if handler, found := sub.Match(args); found {
-			return handler, true
+			return chain(rtr.middleware, handler), true
 		}
 	}
 
@@ -126,15 +131,15 @@ func (rtr *router) Use(middleware ...Middleware) {
 }
 
 func (rtr *router) Group(setup func(r Router)) Router {
-	subRouter := subRouter(rtr)
+	subRouter := childRouter(rtr)
 	setup(subRouter)
-	rtr.subRouters = append(rtr.subRouters, subRouter)
+	rtr.children = append(rtr.children, subRouter)
 	return subRouter
 }
 
 func (rtr *router) Route(command string, setup func(r Router)) Router {
-	if _, exists := rtr.handlers[command]; exists {
-		panic(fmt.Errorf("%s %w", command, errors.DuplicateCommandFunction))
+	if _, exists := rtr.Match([]string{command}); exists {
+		panic(errors.DuplicateCommand(command))
 	}
 
 	subRouter := subRouter(rtr)
@@ -144,23 +149,23 @@ func (rtr *router) Route(command string, setup func(r Router)) Router {
 }
 
 func (rtr *router) Handle(command string, handler Handler) {
-	if _, exists := rtr.handlers[command]; exists {
-		panic(fmt.Errorf("%s %w", command, errors.DuplicateCommandFunction))
+	if _, exists := rtr.Match([]string{command}); exists {
+		panic(errors.DuplicateCommand(command))
 	}
 	rtr.handlers[command] = handler
 }
 
 func (rtr *router) HandleFunction(command string, handerFunction HandlerFunction) {
-	if _, exists := rtr.handlers[command]; exists {
-		panic(fmt.Errorf("%s %w", command, errors.DuplicateCommandFunction))
+	if _, exists := rtr.Match([]string{command}); exists {
+		panic(errors.DuplicateCommand(command))
 	}
 	rtr.handlers[command] = handerFunction
 }
 
-func (rtr *router) Help(handler HandlerFunction) {
+func (rtr *router) Help(handler Handler) {
 	rtr.helpHander = handler
 }
 
-func (rtr *router) NotFound(handler HandlerFunction) {
+func (rtr *router) NotFound(handler Handler) {
 	rtr.notFoundHandler = handler
 }
