@@ -1,33 +1,37 @@
 package shell
 
 import (
+	"bytes"
 	"context"
-	"fmt"
+	"os"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
 )
 
-// testWriter implements io.Writer so it can be used to test ResponseWriter
-type testWriter struct {
-	Prefix string
-	Data   string
-}
-
-func (writer *testWriter) Write(p []byte) (n int, err error) {
-	writer.Data = fmt.Sprintf("%s%s%s", writer.Data, writer.Prefix, string(p))
-	return len(writer.Data), nil
-}
-
 // Validate the writer struct matches the ResponseWriter interface
-var _ ResponseWriter = &writer{}
+var _ ResponseWriter = &WrapperWriter{}
 
-func Test_ResponseWriter(t *testing.T) {
+func Test_WrapperWriter_defaults(t *testing.T) {
+
+	writer := &WrapperWriter{}
+
+	writer.Write([]byte(""))
+	writer.WriteError([]byte(""))
+
+	assert.Equal(t, os.Stdout, writer.outputWritter)
+	assert.Equal(t, os.Stderr, writer.errorWritter)
+
+	writer.errorWritter = nil
+	writer.ErrorWriter()
+	assert.Equal(t, os.Stderr, writer.errorWritter)
+}
+
+func Test_WrapperWriter(t *testing.T) {
 
 	type input struct {
 		writeInput string
 		errorInput string
-		prefix     string
 	}
 
 	type expected struct {
@@ -43,7 +47,6 @@ func Test_ResponseWriter(t *testing.T) {
 		{
 			name: "test 1",
 			input: input{
-				prefix:     "",
 				writeInput: "input",
 				errorInput: "error",
 			},
@@ -55,13 +58,12 @@ func Test_ResponseWriter(t *testing.T) {
 		{
 			name: "test 2",
 			input: input{
-				prefix:     "prefix",
 				writeInput: "",
 				errorInput: "error",
 			},
 			expected: expected{
-				writeOutput: "prefix",
-				errorOutput: "prefixerror",
+				writeOutput: "",
+				errorOutput: "error",
 			},
 		},
 	}
@@ -69,20 +71,17 @@ func Test_ResponseWriter(t *testing.T) {
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
 
-			outputWriter := &testWriter{
-				Prefix: test.input.prefix,
-			}
-			errorWriter := &testWriter{
-				Prefix: test.input.prefix,
-			}
+			outputWriter := &bytes.Buffer{}
+			errorWriter := &bytes.Buffer{}
 
-			writer := newWriter(context.Background(), outputWriter, errorWriter)
+			writer := NewWrapperWriter(context.Background(), outputWriter, errorWriter)
 			writer.Write([]byte(test.input.writeInput))
 			writer.WriteError([]byte(test.input.errorInput))
 
-			assert.EqualValues(t, test.expected.writeOutput, outputWriter.Data)
-			assert.EqualValues(t, test.expected.errorOutput, errorWriter.Data)
+			assert.EqualValues(t, test.expected.writeOutput, outputWriter.String())
+			assert.EqualValues(t, test.expected.errorOutput, errorWriter.String())
+
+			assert.Equal(t, errorWriter, writer.ErrorWriter())
 		})
 	}
-
 }

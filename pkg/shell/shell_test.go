@@ -1,6 +1,7 @@
 package shell
 
 import (
+	"bytes"
 	"context"
 	"fmt"
 	"os"
@@ -51,7 +52,7 @@ func Test_Shell(t *testing.T) {
 
 	t.Run("modified setup", func(t *testing.T) {
 
-		testWritter := &testWriter{}
+		testWritter := &bytes.Buffer{}
 		testReader := strings.NewReader("test request")
 		testRouter := newRouter()
 
@@ -73,20 +74,6 @@ func Test_Shell(t *testing.T) {
 		assert.NotNil(t, actual.closed)
 	})
 
-	t.Run("Help", func(t *testing.T) {
-
-		testRouter := newRouter()
-
-		actual := &Shell{}
-		actual.router = testRouter
-
-		assert.Nil(t, testRouter.helpHander)
-		actual.Help(HandlerFunction(func(ResponseWriter, Request) error {
-			return fmt.Errorf("help")
-		}))
-		assert.NotNil(t, testRouter.helpHander)
-	})
-
 	t.Run("NotFound", func(t *testing.T) {
 
 		testRouter := newRouter()
@@ -95,7 +82,7 @@ func Test_Shell(t *testing.T) {
 		actual.router = testRouter
 
 		assert.Nil(t, testRouter.notFoundHandler)
-		actual.NotFound(HandlerFunction(func(ResponseWriter, Request) error {
+		actual.NotFound(HandlerFunction(func(ResponseWriter, *Request) error {
 			return fmt.Errorf("not found")
 		}))
 		assert.NotNil(t, testRouter.notFoundHandler)
@@ -141,10 +128,10 @@ func Test_Shell_execute(t *testing.T) {
 		t.Run(test.name, func(t *testing.T) {
 
 			shell := &Shell{}
-			shell.HandleFunction("test", func(rw ResponseWriter, r Request) error {
+			shell.HandleFunction("test", func(rw ResponseWriter, r *Request) error {
 				return nil
 			})
-			shell.NotFound(HandlerFunction(func(rw ResponseWriter, r Request) error {
+			shell.NotFound(HandlerFunction(func(rw ResponseWriter, r *Request) error {
 				return fmt.Errorf("command not found")
 			}))
 
@@ -168,7 +155,7 @@ func Test_Shell_Options(t *testing.T) {
 
 	counter := 0
 	validOption := OptionFunction(func(shell *Shell) error {
-		counter += 1
+		counter++
 		return nil
 	})
 
@@ -253,7 +240,7 @@ func Test_Shell_Use(t *testing.T) {
 	var valuesKey contextKey = "values"
 
 	sampleMiddleware := MiddlewareFunction(func(next Handler) Handler {
-		return HandlerFunction(func(rw ResponseWriter, r Request) error {
+		return HandlerFunction(func(rw ResponseWriter, r *Request) error {
 
 			ctx := r.Context()
 
@@ -315,7 +302,7 @@ func Test_Shell_Use(t *testing.T) {
 			shell := &Shell{}
 			shell.Use(test.input...)
 
-			shell.HandleFunction("test", func(rw ResponseWriter, r Request) error {
+			shell.HandleFunction("test", func(rw ResponseWriter, r *Request) error {
 				values, ok := r.Context().Value(valuesKey).([]string)
 				assert.True(t, ok, "values should cast to string array")
 				assert.Equal(t, test.expected.values, values)
@@ -331,11 +318,11 @@ func Test_Shell_Use(t *testing.T) {
 func Test_Shell_Group(t *testing.T) {
 
 	successCommand := "success"
-	successHandler := HandlerFunction(func(rw ResponseWriter, r Request) error {
+	successHandler := HandlerFunction(func(rw ResponseWriter, r *Request) error {
 		return fmt.Errorf("success")
 	})
 
-	failureHandler := HandlerFunction(func(rw ResponseWriter, r Request) error {
+	failureHandler := HandlerFunction(func(rw ResponseWriter, r *Request) error {
 		return fmt.Errorf("failure")
 	})
 
@@ -385,7 +372,7 @@ func Test_Shell_Group(t *testing.T) {
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
 			shell := &Shell{}
-			shell.NotFound(HandlerFunction(func(rw ResponseWriter, r Request) error {
+			shell.NotFound(HandlerFunction(func(rw ResponseWriter, r *Request) error {
 				return fmt.Errorf("not found")
 			}))
 			for _, group := range test.input {
@@ -417,7 +404,7 @@ func Test_Shell_Route(t *testing.T) {
 				{
 					command: "valid",
 					router: func(r Router) {
-						r.HandleFunction("test", func(rw ResponseWriter, r Request) error {
+						r.HandleFunction("test", func(rw ResponseWriter, r *Request) error {
 							return fmt.Errorf("expected")
 						})
 					},
@@ -431,7 +418,7 @@ func Test_Shell_Route(t *testing.T) {
 				{
 					command: "valid",
 					router: func(r Router) {
-						r.HandleFunction("missing", func(rw ResponseWriter, r Request) error {
+						r.HandleFunction("missing", func(rw ResponseWriter, r *Request) error {
 							return fmt.Errorf("expected")
 						})
 					},
@@ -445,10 +432,10 @@ func Test_Shell_Route(t *testing.T) {
 				{
 					command: "valid",
 					router: func(r Router) {
-						r.HandleFunction("missing", func(rw ResponseWriter, r Request) error {
+						r.HandleFunction("missing", func(rw ResponseWriter, r *Request) error {
 							return fmt.Errorf("expected")
 						})
-						r.NotFound(HandlerFunction(func(rw ResponseWriter, r Request) error {
+						r.NotFound(HandlerFunction(func(rw ResponseWriter, r *Request) error {
 							return fmt.Errorf("custom not found")
 						}))
 					},
@@ -462,7 +449,7 @@ func Test_Shell_Route(t *testing.T) {
 				{
 					command: "invalid",
 					router: func(r Router) {
-						r.HandleFunction("test", func(rw ResponseWriter, r Request) error {
+						r.HandleFunction("test", func(rw ResponseWriter, r *Request) error {
 							return fmt.Errorf("expected")
 						})
 					},
@@ -475,7 +462,7 @@ func Test_Shell_Route(t *testing.T) {
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
 			shell := &Shell{}
-			shell.NotFound(HandlerFunction(func(rw ResponseWriter, r Request) error {
+			shell.NotFound(HandlerFunction(func(rw ResponseWriter, r *Request) error {
 				return fmt.Errorf("not found")
 			}))
 			for _, route := range test.input {
@@ -524,7 +511,7 @@ func Test_Shell_Handle(t *testing.T) {
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
 			shell := &Shell{}
-			shell.NotFound(HandlerFunction(func(rw ResponseWriter, r Request) error {
+			shell.NotFound(HandlerFunction(func(rw ResponseWriter, r *Request) error {
 				return fmt.Errorf("not found")
 			}))
 			for _, handle := range test.input {
@@ -553,7 +540,7 @@ func Test_Shell_HandleFunction(t *testing.T) {
 			input: []handle{
 				{
 					command: "test",
-					handler: func(rw ResponseWriter, r Request) error {
+					handler: func(rw ResponseWriter, r *Request) error {
 						return fmt.Errorf("found")
 					},
 				},
@@ -565,7 +552,7 @@ func Test_Shell_HandleFunction(t *testing.T) {
 			input: []handle{
 				{
 					command: "missing",
-					handler: func(rw ResponseWriter, r Request) error {
+					handler: func(rw ResponseWriter, r *Request) error {
 						return fmt.Errorf("found")
 					},
 				},
@@ -577,7 +564,7 @@ func Test_Shell_HandleFunction(t *testing.T) {
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
 			shell := &Shell{}
-			shell.NotFound(HandlerFunction(func(rw ResponseWriter, r Request) error {
+			shell.NotFound(HandlerFunction(func(rw ResponseWriter, r *Request) error {
 				return fmt.Errorf("not found")
 			}))
 			for _, handle := range test.input {
@@ -630,13 +617,13 @@ func Test_Shell_Execute(t *testing.T) {
 		t.Run(test.name, func(t *testing.T) {
 
 			shell := &Shell{}
-			shell.HandleFunction("test", func(rw ResponseWriter, r Request) error {
-				args := r.Args()
+			shell.HandleFunction("test", func(rw ResponseWriter, r *Request) error {
+				args := r.Args
 				assert.Equal(t, test.expected.args, args)
 				return nil
 			})
-			shell.NotFound(HandlerFunction(func(rw ResponseWriter, r Request) error {
-				args := r.Args()
+			shell.NotFound(HandlerFunction(func(rw ResponseWriter, r *Request) error {
+				args := r.Args
 				assert.Equal(t, test.expected.args, args)
 				return fmt.Errorf("command not found")
 			}))
@@ -697,27 +684,27 @@ func Test_Shell_Start(t *testing.T) {
 			ctx, cancel := context.WithCancel(context.Background())
 
 			testReader := strings.NewReader(strings.Join(test.input.args, "\n") + "\n")
-			testOutputWriter := &testWriter{}
-			testErrorWriter := &testWriter{}
+			testOutputWriter := &bytes.Buffer{}
+			testErrorWriter := &bytes.Buffer{}
 
 			shell := &Shell{
 				reader:       testReader,
 				outputWriter: testOutputWriter,
 				errorWriter:  testErrorWriter,
 			}
-			shell.HandleFunction("exit", func(rw ResponseWriter, r Request) error {
-				args := r.Args()
+			shell.HandleFunction("exit", func(rw ResponseWriter, r *Request) error {
+				args := r.Args
 				assert.Equal(t, test.expected.args, args)
 				cancel()
 				return nil
 			})
-			shell.HandleFunction("test", func(rw ResponseWriter, r Request) error {
-				args := r.Args()
+			shell.HandleFunction("test", func(rw ResponseWriter, r *Request) error {
+				args := r.Args
 				assert.Equal(t, test.expected.args, args)
 				return nil
 			})
-			shell.NotFound(HandlerFunction(func(rw ResponseWriter, r Request) error {
-				args := r.Args()
+			shell.NotFound(HandlerFunction(func(rw ResponseWriter, r *Request) error {
+				args := r.Args
 				assert.Equal(t, test.expected.args, args)
 				return fmt.Errorf("command not found")
 			}))

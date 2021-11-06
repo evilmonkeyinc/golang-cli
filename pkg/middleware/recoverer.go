@@ -7,9 +7,11 @@ import (
 	"github.com/evilmonkeyinc/golang-cli/pkg/shell"
 )
 
+// Recoverer returns middleware which will allow the shell to recover from a panic
+// The middleware will output the error and stack trace to the ResponseWriter error writer.
 func Recoverer() shell.Middleware {
 	return shell.MiddlewareFunction(func(next shell.Handler) shell.Handler {
-		return shell.HandlerFunction(func(rw shell.ResponseWriter, r shell.Request) error {
+		return shell.HandlerFunction(func(rw shell.ResponseWriter, r *shell.Request) error {
 			defer func() {
 				if rvr := recover(); rvr != nil {
 					errMsg := fmt.Sprintf("%v", rvr)
@@ -21,9 +23,8 @@ func Recoverer() shell.Middleware {
 					default:
 						break
 					}
-					rw.WriteError([]byte(errMsg))
-					rw.WriteError([]byte("\n"))
-					rw.WriteError(debug.Stack())
+					fmt.Fprintln(rw.ErrorWriter(), errMsg)
+					fmt.Fprintln(rw.ErrorWriter(), debug.Stack())
 				}
 			}()
 

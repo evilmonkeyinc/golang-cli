@@ -1,7 +1,6 @@
 package shell
 
 import (
-	"context"
 	"fmt"
 	"testing"
 
@@ -20,19 +19,15 @@ func Test_Router(t *testing.T) {
 		assert.NotNil(t, actual.handlers)
 		assert.NotNil(t, actual.middleware)
 		assert.Nil(t, actual.parent)
-		assert.Nil(t, actual.helpHander)
 		assert.Nil(t, actual.notFoundHandler)
 	})
 
 	t.Run("childRouter", func(t *testing.T) {
 		input := newRouter()
-		input.helpHander = HandlerFunction(func(ResponseWriter, Request) error {
-			return fmt.Errorf("help")
-		})
-		input.notFoundHandler = HandlerFunction(func(ResponseWriter, Request) error {
+		input.notFoundHandler = HandlerFunction(func(ResponseWriter, *Request) error {
 			return fmt.Errorf("not found")
 		})
-		input.handlers["test"] = HandlerFunction(func(ResponseWriter, Request) error {
+		input.handlers["test"] = HandlerFunction(func(ResponseWriter, *Request) error {
 			return fmt.Errorf("test")
 		})
 		input.middleware = append(input.middleware, MiddlewareFunction(func(next Handler) Handler { return next }))
@@ -40,7 +35,6 @@ func Test_Router(t *testing.T) {
 
 		actual := childRouter(input)
 		assert.Equal(t, input, actual.parent)
-		assert.NotNil(t, actual.helpHander)
 		assert.NotNil(t, actual.notFoundHandler)
 
 		assert.NotEqual(t, input.handlers, actual.handlers)
@@ -50,13 +44,10 @@ func Test_Router(t *testing.T) {
 
 	t.Run("subRouter", func(t *testing.T) {
 		input := newRouter()
-		input.helpHander = HandlerFunction(func(ResponseWriter, Request) error {
-			return fmt.Errorf("help")
-		})
-		input.notFoundHandler = HandlerFunction(func(ResponseWriter, Request) error {
+		input.notFoundHandler = HandlerFunction(func(ResponseWriter, *Request) error {
 			return fmt.Errorf("not found")
 		})
-		input.handlers["test"] = HandlerFunction(func(ResponseWriter, Request) error {
+		input.handlers["test"] = HandlerFunction(func(ResponseWriter, *Request) error {
 			return fmt.Errorf("test")
 		})
 		input.middleware = append(input.middleware, MiddlewareFunction(func(next Handler) Handler { return next }))
@@ -64,7 +55,6 @@ func Test_Router(t *testing.T) {
 
 		actual := subRouter(input)
 		assert.Nil(t, actual.parent)
-		assert.NotNil(t, actual.helpHander)
 		assert.NotNil(t, actual.notFoundHandler)
 
 		assert.NotEqual(t, input.handlers, actual.handlers)
@@ -74,7 +64,7 @@ func Test_Router(t *testing.T) {
 
 	t.Run("Routes", func(t *testing.T) {
 		input := newRouter()
-		input.handlers["test"] = HandlerFunction(func(ResponseWriter, Request) error {
+		input.handlers["test"] = HandlerFunction(func(ResponseWriter, *Request) error {
 			return fmt.Errorf("test")
 		})
 
@@ -100,20 +90,9 @@ func Test_Router(t *testing.T) {
 		assert.Len(t, router.middleware, 1)
 	})
 
-	t.Run("Help", func(t *testing.T) {
-		router := newRouter()
-		router.Help(HandlerFunction(func(ResponseWriter, Request) error {
-			return fmt.Errorf("help")
-		}))
-
-		assert.NotNil(t, router.helpHander)
-		actual := router.helpHander.Execute(nil, nil)
-		assert.Equal(t, fmt.Errorf("help"), actual)
-	})
-
 	t.Run("NotFound", func(t *testing.T) {
 		router := newRouter()
-		router.NotFound(HandlerFunction(func(ResponseWriter, Request) error {
+		router.NotFound(HandlerFunction(func(ResponseWriter, *Request) error {
 			return fmt.Errorf("not found")
 		}))
 
@@ -129,15 +108,15 @@ func Test_Router_Execute(t *testing.T) {
 	router := newRouter()
 
 	t.Run("empty", func(t *testing.T) {
-		request := newRequest(context.Background(), []string{"anything"}, nil)
+		request := NewRequest([]string{}, []string{"anything"}, nil)
 		actual := router.Execute(nil, request)
 		assert.Nil(t, actual)
 	})
 
-	router.notFoundHandler = HandlerFunction(func(ResponseWriter, Request) error {
+	router.notFoundHandler = HandlerFunction(func(ResponseWriter, *Request) error {
 		return fmt.Errorf("not found")
 	})
-	router.handlers["test"] = HandlerFunction(func(ResponseWriter, Request) error {
+	router.handlers["test"] = HandlerFunction(func(ResponseWriter, *Request) error {
 		return fmt.Errorf("found")
 	})
 
@@ -160,7 +139,7 @@ func Test_Router_Execute(t *testing.T) {
 
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
-			request := newRequest(context.Background(), []string{test.input}, nil)
+			request := NewRequest([]string{}, []string{test.input}, nil)
 			actual := router.Execute(nil, request)
 			assert.Equal(t, test.expected, actual)
 		})
@@ -171,30 +150,30 @@ func Test_Router_Match(t *testing.T) {
 
 	router := newRouter()
 	router.Use(MiddlewareFunction(func(next Handler) Handler {
-		return HandlerFunction(func(rw ResponseWriter, r Request) error {
+		return HandlerFunction(func(rw ResponseWriter, r *Request) error {
 			err := next.Execute(rw, r)
 			return fmt.Errorf("%w with top middleware", err)
 		})
 	}))
-	router.HandleFunction("found", func(ResponseWriter, Request) error {
+	router.HandleFunction("found", func(ResponseWriter, *Request) error {
 		return fmt.Errorf("found")
 	})
 	router.Route("child", func(r Router) {
-		r.HandleFunction("func", func(ResponseWriter, Request) error {
+		r.HandleFunction("func", func(ResponseWriter, *Request) error {
 			return fmt.Errorf("found in child")
 		})
-		r.NotFound(HandlerFunction(func(ResponseWriter, Request) error {
+		r.NotFound(HandlerFunction(func(ResponseWriter, *Request) error {
 			return fmt.Errorf("not found")
 		}))
 	})
 	router.Group(func(r Router) {
 		r.Use(MiddlewareFunction(func(next Handler) Handler {
-			return HandlerFunction(func(rw ResponseWriter, r Request) error {
+			return HandlerFunction(func(rw ResponseWriter, r *Request) error {
 				err := next.Execute(rw, r)
 				return fmt.Errorf("%w with group middleware", err)
 			})
 		}))
-		r.HandleFunction("group", func(ResponseWriter, Request) error {
+		r.HandleFunction("group", func(ResponseWriter, *Request) error {
 			return fmt.Errorf("found in group")
 		})
 	})
@@ -273,7 +252,7 @@ func Test_Router_Match(t *testing.T) {
 			assert.Equal(t, test.expected.found, found)
 
 			if handler != nil {
-				request := newRequest(context.Background(), test.input[1:], router)
+				request := NewRequest([]string{}, test.input[1:], router)
 				err := handler.Execute(nil, request)
 
 				if test.expected.err != nil {
@@ -293,14 +272,14 @@ func Test_Router_Match(t *testing.T) {
 func Test_Router_Group(t *testing.T) {
 	router := newRouter()
 	actual := router.Group(func(r Router) {
-		r.HandleFunction("found", func(ResponseWriter, Request) error {
+		r.HandleFunction("found", func(ResponseWriter, *Request) error {
 			return fmt.Errorf("found")
 		})
 	})
 
 	assert.Contains(t, router.children, actual)
 
-	request := newRequest(context.Background(), []string{"found"}, nil)
+	request := NewRequest([]string{}, []string{"found"}, nil)
 	direct := actual.Execute(nil, request)
 	parent := router.Execute(nil, request)
 
@@ -312,17 +291,17 @@ func Test_Router_Route(t *testing.T) {
 	t.Run("set route", func(t *testing.T) {
 		router := newRouter()
 		subRouter := router.Route("route", func(r Router) {
-			r.HandleFunction("found", func(ResponseWriter, Request) error {
+			r.HandleFunction("found", func(ResponseWriter, *Request) error {
 				return fmt.Errorf("found")
 			})
 		})
 
 		assert.Contains(t, router.handlers, "route")
 
-		request := newRequest(context.Background(), []string{"route", "found"}, nil)
+		request := NewRequest([]string{}, []string{"route", "found"}, nil)
 		parent := router.Execute(nil, request)
 
-		direct := subRouter.Execute(nil, request.WithArgs([]string{"found"}))
+		direct := subRouter.Execute(nil, request.WithRoutes("route", nil))
 
 		assert.Equal(t, direct, parent)
 		assert.Equal(t, direct, fmt.Errorf("found"))
@@ -332,12 +311,12 @@ func Test_Router_Route(t *testing.T) {
 		testPanic(t, func() {
 			router := newRouter()
 			router.Route("route", func(r Router) {
-				r.HandleFunction("first", func(ResponseWriter, Request) error {
+				r.HandleFunction("first", func(ResponseWriter, *Request) error {
 					return fmt.Errorf("found")
 				})
 			})
 			router.Route("route", func(r Router) {
-				r.HandleFunction("second", func(ResponseWriter, Request) error {
+				r.HandleFunction("second", func(ResponseWriter, *Request) error {
 					return fmt.Errorf("found")
 				})
 			})
@@ -363,7 +342,7 @@ func Test_Router_Handle(t *testing.T) {
 func Test_Router_HandleFunction(t *testing.T) {
 	t.Run("first", func(t *testing.T) {
 		router := newRouter()
-		router.HandleFunction("found", HandlerFunction(func(ResponseWriter, Request) error {
+		router.HandleFunction("found", HandlerFunction(func(ResponseWriter, *Request) error {
 			return nil
 		}))
 		assert.Contains(t, router.handlers, "found")
@@ -371,10 +350,10 @@ func Test_Router_HandleFunction(t *testing.T) {
 	t.Run("duplicate", func(t *testing.T) {
 		testPanic(t, func() {
 			router := newRouter()
-			router.HandleFunction("found", HandlerFunction(func(ResponseWriter, Request) error {
+			router.HandleFunction("found", HandlerFunction(func(ResponseWriter, *Request) error {
 				return nil
 			}))
-			router.HandleFunction("found", HandlerFunction(func(ResponseWriter, Request) error {
+			router.HandleFunction("found", HandlerFunction(func(ResponseWriter, *Request) error {
 				return nil
 			}))
 		}, errors.DuplicateCommand("found").Error())

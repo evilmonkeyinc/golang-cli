@@ -1,62 +1,82 @@
 package shell
 
-import "context"
+import (
+	"context"
+	"strings"
+)
 
-type Request interface {
-	Args() []string
-	Context() context.Context
-	Routes() Routes
-	WithContext(context.Context) Request
-	WithArgs([]string) Request
-	WithRoutes(Routes) Request
+// NewRequest wraps NewRequestWithContext using context.Background.
+func NewRequest(path, args []string, routes Routes) *Request {
+	return NewRequestWithContext(context.Background(), path, args, routes)
 }
 
-func newRequest(ctx context.Context, args []string, routes Routes) *request {
-	return &request{
+// NewRequestWithContext returns a new Request given a path, args, and routes.
+func NewRequestWithContext(ctx context.Context, path, args []string, routes Routes) *Request {
+	return &Request{
 		ctx:    ctx,
-		args:   args,
-		routes: routes,
+		Args:   args,
+		Path:   path,
+		Routes: routes,
 	}
 }
 
-type request struct {
-	ctx    context.Context
-	args   []string
-	routes Routes
+// A Request represents a the request sent by the shell and processed by the router and handlers.
+type Request struct {
+	ctx context.Context
+
+	// Args contains the arguments passed as part of the request.
+	Args []string
+	// Path contains the request path.
+	Path []string
+	// Routes contains the router routes functions linked to the executed router.
+	Routes Routes
 }
 
-func (req *request) Args() []string {
-	return req.args
+// Context returns the request's context. To change the context, use WithContext.
+func (request *Request) Context() context.Context {
+	return request.ctx
 }
 
-func (req *request) Context() context.Context {
-	return req.ctx
-}
+// WithContext returns a shallow copy of the request with its context changed to ctx.
+func (request *Request) WithContext(ctx context.Context) *Request {
+	args := make([]string, len(request.Args))
+	copy(args, request.Args)
 
-func (req *request) Routes() Routes {
-	return req.routes
-}
+	path := make([]string, len(request.Path))
+	copy(path, request.Path)
 
-func (req *request) WithContext(ctx context.Context) Request {
-	return &request{
+	return &Request{
 		ctx:    ctx,
-		args:   req.args,
-		routes: req.routes,
+		Args:   args,
+		Path:   path,
+		Routes: request.Routes,
 	}
 }
 
-func (req *request) WithArgs(args []string) Request {
-	return &request{
-		ctx:    req.ctx,
-		args:   args,
-		routes: req.routes,
-	}
-}
+// WithRoutes returns a shallow copy of the request with updated Routes,
+// the selected route added to paths array, and removed from the args array
+func (request *Request) WithRoutes(selectedRoute string, routes Routes) *Request {
+	args := make([]string, len(request.Args))
+	copy(args, request.Args)
 
-func (req *request) WithRoutes(routes Routes) Request {
-	return &request{
-		ctx:    req.ctx,
-		args:   req.args,
-		routes: routes,
+	path := make([]string, len(request.Path))
+	copy(path, request.Path)
+
+	if selectedRoute != "" {
+		path = append(path, selectedRoute)
+		if len(args) > 0 && strings.EqualFold(args[0], selectedRoute) {
+			args = args[1:]
+		}
+	}
+
+	if routes == nil {
+		routes = request.Routes
+	}
+
+	return &Request{
+		ctx:    request.ctx,
+		Args:   args,
+		Path:   path,
+		Routes: routes,
 	}
 }
