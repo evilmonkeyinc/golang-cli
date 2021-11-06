@@ -1,10 +1,11 @@
-package shell
+package commands
 
 import (
 	"fmt"
 	"testing"
 
 	"github.com/evilmonkeyinc/golang-cli/pkg/errors"
+	"github.com/evilmonkeyinc/golang-cli/pkg/shell"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -26,7 +27,7 @@ func Test_Command(t *testing.T) {
 			name: "found",
 			input: &Command{
 				Name: "found",
-				Function: func(ResponseWriter, Request) error {
+				Function: func(shell.ResponseWriter, *shell.Request) error {
 					return fmt.Errorf("found")
 				},
 			},

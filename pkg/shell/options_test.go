@@ -1,6 +1,7 @@
 package shell
 
 import (
+	"bytes"
 	"os"
 	"strings"
 	"testing"
@@ -48,7 +49,7 @@ func Test_OptionInput(t *testing.T) {
 func Test_OptionOutputWriter(t *testing.T) {
 
 	t.Run("not set", func(t *testing.T) {
-		writer := &testWriter{}
+		writer := &bytes.Buffer{}
 
 		option := OptionOutputWriter(writer)
 		shell := &Shell{}
@@ -59,7 +60,7 @@ func Test_OptionOutputWriter(t *testing.T) {
 	})
 
 	t.Run("already set", func(t *testing.T) {
-		writer := &testWriter{}
+		writer := &bytes.Buffer{}
 
 		option := OptionOutputWriter(writer)
 		shell := &Shell{
@@ -78,7 +79,7 @@ func Test_OptionOutputWriter(t *testing.T) {
 func Test_OptionErrorWriter(t *testing.T) {
 
 	t.Run("not set", func(t *testing.T) {
-		writer := &testWriter{}
+		writer := &bytes.Buffer{}
 
 		option := OptionErrorWriter(writer)
 		shell := &Shell{}
@@ -89,7 +90,7 @@ func Test_OptionErrorWriter(t *testing.T) {
 	})
 
 	t.Run("already set", func(t *testing.T) {
-		writer := &testWriter{}
+		writer := &bytes.Buffer{}
 
 		option := OptionErrorWriter(writer)
 		shell := &Shell{

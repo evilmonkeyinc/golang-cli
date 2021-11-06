@@ -1,12 +1,16 @@
 package shell
 
+// The MiddlewareFunction type is an adapter to allow the use of ordinary functions as shell middleware.
 type MiddlewareFunction func(next Handler) Handler
 
+// Handle is used to perform the middleware function.
 func (middleware MiddlewareFunction) Handle(next Handler) Handler {
 	return middleware(next)
 }
 
+// The Middleware interface describes a shell middleware function
 type Middleware interface {
+	// Handle is used to perform the middleware function.
 	Handle(next Handler) Handler
 }
 

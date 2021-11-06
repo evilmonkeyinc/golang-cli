@@ -1,13 +1,13 @@
 package middleware
 
 import (
+	"bytes"
 	"context"
 	"fmt"
 	"strings"
 	"testing"
 
 	"github.com/evilmonkeyinc/golang-cli/pkg/shell"
-	"github.com/evilmonkeyinc/golang-cli/test"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -35,20 +35,20 @@ func Test_Recoverer(t *testing.T) {
 		},
 	}
 
-	testWritter := &test.TestResponseWriter{}
-	testRequest := &test.TestRequest{}
+	testRequest := shell.NewRequest([]string{}, []string{}, nil)
 
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
-			testWritter.ErrorData = ""
+			errorWriter := &bytes.Buffer{}
+			testWritter := shell.NewWrapperWriter(context.Background(), &bytes.Buffer{}, errorWriter)
 
-			next := shell.HandlerFunction(func(rw shell.ResponseWriter, r shell.Request) error {
+			next := shell.HandlerFunction(func(rw shell.ResponseWriter, r *shell.Request) error {
 				panic(test.input)
 			})
 
 			middleware := Recoverer()
 			middleware.Handle(next).Execute(testWritter, testRequest.WithContext(context.Background()))
-			firstLine := strings.Split(testWritter.ErrorData, "\n")[0]
+			firstLine := strings.Split(errorWriter.String(), "\n")[0]
 			assert.Equal(t, test.expected, firstLine)
 		})
 	}
