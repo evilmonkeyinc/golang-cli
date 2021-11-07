@@ -48,7 +48,9 @@ func Test_Recoverer(t *testing.T) {
 
 			middleware := Recoverer()
 			middleware.Handle(next).Execute(testWritter, testRequest.WithContext(context.Background()))
-			firstLine := strings.Split(errorWriter.String(), "\n")[0]
+
+			actual := strings.Split(errorWriter.String(), "\n")
+			firstLine := actual[0]
 			assert.Equal(t, test.expected, firstLine)
 		})
 	}
