@@ -17,6 +17,13 @@ var _ Option = OptionFunction(func(shell *Shell) error {
 
 func Test_OptionInput(t *testing.T) {
 
+	t.Run("invalid", func(t *testing.T) {
+		expected := errors.OptionIsInvalid("Input")
+		testPanic(t, func() {
+			OptionInput(nil)
+		}, expected.Error())
+	})
+
 	t.Run("not set", func(t *testing.T) {
 		reader := strings.NewReader("test")
 
@@ -48,6 +55,13 @@ func Test_OptionInput(t *testing.T) {
 
 func Test_OptionOutputWriter(t *testing.T) {
 
+	t.Run("invalid", func(t *testing.T) {
+		expected := errors.OptionIsInvalid("OutputWriter")
+		testPanic(t, func() {
+			OptionOutputWriter(nil)
+		}, expected.Error())
+	})
+
 	t.Run("not set", func(t *testing.T) {
 		writer := &bytes.Buffer{}
 
@@ -78,6 +92,13 @@ func Test_OptionOutputWriter(t *testing.T) {
 }
 func Test_OptionErrorWriter(t *testing.T) {
 
+	t.Run("invalid", func(t *testing.T) {
+		expected := errors.OptionIsInvalid("ErrorWriter")
+		testPanic(t, func() {
+			OptionErrorWriter(nil)
+		}, expected.Error())
+	})
+
 	t.Run("not set", func(t *testing.T) {
 		writer := &bytes.Buffer{}
 
@@ -102,6 +123,44 @@ func Test_OptionErrorWriter(t *testing.T) {
 		assert.NotNil(t, err)
 
 		expectedError := errors.OptionIsSet("ErrorWriter")
+		assert.EqualValues(t, expectedError, err)
+	})
+
+}
+
+func Test_OptionShellPrompt(t *testing.T) {
+
+	t.Run("invalid", func(t *testing.T) {
+		expected := errors.OptionIsInvalid("ShellPrompt")
+		testPanic(t, func() {
+			OptionShellPrompt("")
+		}, expected.Error())
+	})
+
+	t.Run("not set", func(t *testing.T) {
+		prompt := "cli:"
+
+		option := OptionShellPrompt(prompt)
+		shell := &Shell{}
+		err := option.Apply(shell)
+
+		assert.Equal(t, prompt, shell.shellPrompt)
+		assert.Nil(t, err)
+	})
+
+	t.Run("already set", func(t *testing.T) {
+		prompt := "cli:"
+
+		option := OptionShellPrompt(prompt)
+		shell := &Shell{
+			shellPrompt: defaultShellPrompt,
+		}
+		err := option.Apply(shell)
+
+		assert.NotEqual(t, prompt, shell.shellPrompt)
+		assert.NotNil(t, err)
+
+		expectedError := errors.OptionIsSet("ShellPrompt")
 		assert.EqualValues(t, expectedError, err)
 	})
 

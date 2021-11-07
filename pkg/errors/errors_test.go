@@ -105,3 +105,35 @@ func Test_OptionIsSet(t *testing.T) {
 		})
 	}
 }
+func Test_OptionIsInvalid(t *testing.T) {
+
+	tests := []struct {
+		name     string
+		input    string
+		expected string
+	}{
+		{
+			name:     "standard",
+			input:    "Type",
+			expected: "'Type' option paramaters are undefined or invalid",
+		},
+		{
+			name:     "empty",
+			input:    "",
+			expected: "'' option paramaters are undefined or invalid",
+		},
+		{
+			name:     "lowercase",
+			input:    "type",
+			expected: "'type' option paramaters are undefined or invalid",
+		},
+	}
+
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			actual := OptionIsInvalid(test.input)
+			assert.Equal(t, test.expected, actual.Error())
+			assert.True(t, errors.Is(actual, errOptionIsInvalid))
+		})
+	}
+}

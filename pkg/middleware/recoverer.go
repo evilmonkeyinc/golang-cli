@@ -24,7 +24,7 @@ func Recoverer() shell.Middleware {
 						break
 					}
 					fmt.Fprintln(rw.ErrorWriter(), errMsg)
-					fmt.Fprintln(rw.ErrorWriter(), debug.Stack())
+					fmt.Fprintln(rw.ErrorWriter(), string(debug.Stack()))
 				}
 			}()
 

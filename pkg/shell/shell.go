@@ -9,10 +9,16 @@ import (
 	"strings"
 )
 
+const (
+	defaultShellPrompt string = "shell>"
+)
+
 // Shell exposes the command-line or interactive shell functionality.
 //
-// The shell
+// The shell can be execute as a command-line tool by using the Execute function
+// or to be run as an interactive shell using the Start function
 type Shell struct {
+	shellPrompt  string
 	router       Router
 	reader       io.Reader
 	outputWriter io.Writer
@@ -21,6 +27,9 @@ type Shell struct {
 }
 
 func (shell *Shell) setup() {
+	if shell.shellPrompt == "" {
+		shell.shellPrompt = defaultShellPrompt
+	}
 	if shell.router == nil {
 		shell.router = newRouter()
 	}
@@ -110,7 +119,7 @@ func (shell *Shell) Start(ctx context.Context) error {
 		// start a goroutine to get input from the user
 		go func(ctx context.Context, input chan<- string) {
 			for {
-				fmt.Fprintf(shell.outputWriter, "%s ", "shell>") // TODO : shell prompt
+				fmt.Fprintf(shell.outputWriter, "%s ", shell.shellPrompt)
 				line, err := reader.ReadString('\n')
 				if err != nil {
 					fmt.Fprintf(shell.errorWriter, "%v\n", err)
