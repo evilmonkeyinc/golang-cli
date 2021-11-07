@@ -11,7 +11,8 @@ import (
 
 // Shell exposes the command-line or interactive shell functionality.
 //
-// The shell
+// The shell can be execute as a command-line tool by using the Execute function
+// or to be run as an interactive shell using the Start function
 type Shell struct {
 	router       Router
 	reader       io.Reader
