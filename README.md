@@ -17,7 +17,7 @@ A simple command-line tool-set for Golang modeled after HTTP routing patterns.
 ### Shell
 
 ```golang
-import "github.com/evilmonkeyinc/golang-cli/pkg/shell"
+import "github.com/evilmonkeyinc/golang-cli/shell"
 ...
     newShell := new(shell.Shell)
 ...

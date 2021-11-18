@@ -1,8 +1,8 @@
 package commands
 
 import (
-	"github.com/evilmonkeyinc/golang-cli/pkg/errors"
-	"github.com/evilmonkeyinc/golang-cli/pkg/shell"
+	"github.com/evilmonkeyinc/golang-cli/errors"
+	"github.com/evilmonkeyinc/golang-cli/shell"
 )
 
 // Command allows to define a shell handler with metadata.

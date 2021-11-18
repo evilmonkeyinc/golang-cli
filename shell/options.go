@@ -3,7 +3,7 @@ package shell
 import (
 	"io"
 
-	"github.com/evilmonkeyinc/golang-cli/pkg/errors"
+	"github.com/evilmonkeyinc/golang-cli/errors"
 )
 
 // The OptionFunction type is an adapter to allow the use of ordinary functions as shell options.

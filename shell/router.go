@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/evilmonkeyinc/golang-cli/pkg/errors"
+	"github.com/evilmonkeyinc/golang-cli/errors"
 )
 
 // The Router interface details the core shell router functions.

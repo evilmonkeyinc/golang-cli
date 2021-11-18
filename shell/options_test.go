@@ -8,7 +8,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/evilmonkeyinc/golang-cli/pkg/errors"
+	"github.com/evilmonkeyinc/golang-cli/errors"
 	"github.com/stretchr/testify/assert"
 )
 

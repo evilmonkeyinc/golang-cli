@@ -7,9 +7,9 @@ import (
 	"os/signal"
 	"syscall"
 
-	"github.com/evilmonkeyinc/golang-cli/pkg/commands"
-	"github.com/evilmonkeyinc/golang-cli/pkg/middleware"
-	"github.com/evilmonkeyinc/golang-cli/pkg/shell"
+	"github.com/evilmonkeyinc/golang-cli/commands"
+	"github.com/evilmonkeyinc/golang-cli/middleware"
+	"github.com/evilmonkeyinc/golang-cli/shell"
 )
 
 func main() {

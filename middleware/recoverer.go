@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"runtime/debug"
 
-	"github.com/evilmonkeyinc/golang-cli/pkg/shell"
+	"github.com/evilmonkeyinc/golang-cli/shell"
 )
 
 // Recoverer returns middleware which will allow the shell to recover from a panic
