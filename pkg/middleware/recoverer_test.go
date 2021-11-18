@@ -35,7 +35,7 @@ func Test_Recoverer(t *testing.T) {
 		},
 	}
 
-	testRequest := shell.NewRequest([]string{}, []string{}, nil)
+	testRequest := shell.NewRequest([]string{}, []string{}, &shell.DefaultFlagSet{}, nil)
 
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {

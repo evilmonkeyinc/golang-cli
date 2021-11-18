@@ -2,6 +2,8 @@ package shell
 
 import (
 	"bytes"
+	"flag"
+	"fmt"
 	"os"
 	"strings"
 	"testing"
@@ -14,6 +16,21 @@ import (
 var _ Option = OptionFunction(func(shell *Shell) error {
 	return nil
 })
+
+func Test_OptionFunction(t *testing.T) {
+
+	fn := OptionFunction(func(shell *Shell) error {
+		return fmt.Errorf("option function")
+	})
+
+	direct := fn(nil)
+	apply := fn.Apply(nil)
+
+	assert.Equal(t, fmt.Errorf("option function"), direct)
+	assert.Equal(t, fmt.Errorf("option function"), apply)
+	assert.Equal(t, direct, apply)
+
+}
 
 func Test_OptionInput(t *testing.T) {
 
@@ -161,6 +178,44 @@ func Test_OptionShellPrompt(t *testing.T) {
 		assert.NotNil(t, err)
 
 		expectedError := errors.OptionIsSet("ShellPrompt")
+		assert.EqualValues(t, expectedError, err)
+	})
+
+}
+
+func Test_OptionFlagSet(t *testing.T) {
+
+	t.Run("invalid", func(t *testing.T) {
+		expected := errors.OptionIsInvalid("FlagSet")
+		testPanic(t, func() {
+			OptionFlagSet(nil)
+		}, expected.Error())
+	})
+
+	t.Run("not set", func(t *testing.T) {
+		flagSet := NewDefaultFlagSetWithBase(nil)
+
+		option := OptionFlagSet(flagSet)
+		shell := &Shell{}
+		err := option.Apply(shell)
+
+		assert.Equal(t, flagSet, shell.flagSet)
+		assert.Nil(t, err)
+	})
+
+	t.Run("already set", func(t *testing.T) {
+		flagSet := NewDefaultFlagSetWithBase(flag.CommandLine)
+
+		option := OptionFlagSet(flagSet)
+		shell := &Shell{
+			flagSet: NewDefaultFlagSetWithBase(nil),
+		}
+		err := option.Apply(shell)
+
+		assert.NotEqual(t, flagSet, shell.flagSet)
+		assert.NotNil(t, err)
+
+		expectedError := errors.OptionIsSet("FlagSet")
 		assert.EqualValues(t, expectedError, err)
 	})
 

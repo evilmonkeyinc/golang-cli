@@ -1,6 +1,8 @@
 package shell
 
 import (
+	"bytes"
+	"context"
 	"fmt"
 	"testing"
 
@@ -103,12 +105,10 @@ func Test_Router(t *testing.T) {
 }
 
 func Test_Router_Execute(t *testing.T) {
-	// TODO : add tests for flag logic
-
 	router := newRouter()
 
 	t.Run("empty", func(t *testing.T) {
-		request := NewRequest([]string{}, []string{"anything"}, nil)
+		request := NewRequest([]string{}, []string{"anything"}, &DefaultFlagSet{}, nil)
 		actual := router.Execute(nil, request)
 		assert.Nil(t, actual)
 	})
@@ -139,7 +139,7 @@ func Test_Router_Execute(t *testing.T) {
 
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
-			request := NewRequest([]string{}, []string{test.input}, nil)
+			request := NewRequest([]string{}, []string{test.input}, &DefaultFlagSet{}, nil)
 			actual := router.Execute(nil, request)
 			assert.Equal(t, test.expected, actual)
 		})
@@ -252,7 +252,7 @@ func Test_Router_Match(t *testing.T) {
 			assert.Equal(t, test.expected.found, found)
 
 			if handler != nil {
-				request := NewRequest([]string{}, test.input[1:], router)
+				request := NewRequest([]string{}, test.input[1:], &DefaultFlagSet{}, router)
 				err := handler.Execute(nil, request)
 
 				if test.expected.err != nil {
@@ -279,7 +279,7 @@ func Test_Router_Group(t *testing.T) {
 
 	assert.Contains(t, router.children, actual)
 
-	request := NewRequest([]string{}, []string{"found"}, nil)
+	request := NewRequest([]string{}, []string{"found"}, &DefaultFlagSet{}, nil)
 	direct := actual.Execute(nil, request)
 	parent := router.Execute(nil, request)
 
@@ -298,13 +298,14 @@ func Test_Router_Route(t *testing.T) {
 
 		assert.Contains(t, router.handlers, "route")
 
-		request := NewRequest([]string{}, []string{"route", "found"}, nil)
+		request := NewRequest([]string{}, []string{"route", "found"}, &DefaultFlagSet{}, nil)
 		parent := router.Execute(nil, request)
 
-		direct := subRouter.Execute(nil, request.WithRoutes("route", nil))
+		request = NewRequest([]string{}, []string{"found"}, &DefaultFlagSet{}, nil)
+		direct := subRouter.Execute(nil, request)
 
-		assert.Equal(t, direct, parent)
-		assert.Equal(t, direct, fmt.Errorf("found"))
+		assert.Equal(t, fmt.Errorf("found"), parent)
+		assert.Equal(t, fmt.Errorf("found"), direct)
 	})
 
 	t.Run("duplicate panic", func(t *testing.T) {
@@ -358,4 +359,265 @@ func Test_Router_HandleFunction(t *testing.T) {
 			}))
 		}, errors.DuplicateCommand("found").Error())
 	})
+}
+
+type testHandlerWithFlags struct {
+	t             *testing.T
+	response      string
+	expectedFlags map[string]interface{}
+}
+
+func (handler *testHandlerWithFlags) Define(fd FlagDefiner) {
+	fd.String("test", "", "")
+}
+
+func (handler *testHandlerWithFlags) Execute(rw ResponseWriter, r *Request) error {
+	flagValues := r.FlagValues()
+
+	for key, expected := range handler.expectedFlags {
+		actual := flagValues.Get(key)
+		assert.Equal(handler.t, expected, actual)
+	}
+
+	return fmt.Errorf(handler.response)
+}
+
+func Test_Router_Flags(t *testing.T) {
+
+	type input struct {
+		args []string
+	}
+
+	type expected struct {
+		err        error
+		parsed     map[string]interface{}
+		parseError string
+	}
+
+	tests := []struct {
+		name     string
+		input    input
+		expected expected
+	}{
+		{
+			name: "go",
+			input: input{
+				args: []string{"go"},
+			},
+			expected: expected{
+				err:    fmt.Errorf("top"),
+				parsed: map[string]interface{}{},
+			},
+		},
+		{
+			name: "go -test this",
+			input: input{
+				args: []string{"go", "-test", "this"},
+			},
+			expected: expected{
+				err: fmt.Errorf("top"),
+				parsed: map[string]interface{}{
+					"test": "this",
+				},
+			},
+		},
+		{
+			name: "go -test=this",
+			input: input{
+				args: []string{"go", "-test=this"},
+			},
+			expected: expected{
+				err: fmt.Errorf("top"),
+				parsed: map[string]interface{}{
+					"test": "this",
+				},
+			},
+		},
+		{
+			name: "one -two",
+			input: input{
+				args: []string{"one", "-two"},
+			},
+			expected: expected{
+				err:        nil,
+				parsed:     map[string]interface{}{},
+				parseError: "flag provided but not defined: -two\n",
+			},
+		},
+		{
+			name: "one go",
+			input: input{
+				args: []string{"one", "go"},
+			},
+			expected: expected{
+				err: fmt.Errorf("after one"),
+				parsed: map[string]interface{}{
+					"one": false,
+				},
+			},
+		},
+		{
+			name: "one -one go -test this",
+			input: input{
+				args: []string{"one", "-one", "go", "-test", "this"},
+			},
+			expected: expected{
+				err: fmt.Errorf("after one"),
+				parsed: map[string]interface{}{
+					"test": "this",
+					"one":  true,
+				},
+			},
+		},
+		{
+			name: "one go -test=this -one",
+			input: input{
+				args: []string{"one", "go", "-test=this", "-one"},
+			},
+			expected: expected{
+				err: fmt.Errorf("after one"),
+				parsed: map[string]interface{}{
+					"test": "this",
+					"one":  true,
+				},
+			},
+		},
+		{
+			name: "one two go",
+			input: input{
+				args: []string{"one", "two", "go"},
+			},
+			expected: expected{
+				err: fmt.Errorf("after two"),
+				parsed: map[string]interface{}{
+					"one": false,
+				},
+			},
+		},
+		{
+			name: "one -one two -two go -test this",
+			input: input{
+				args: []string{"one", "-one", "two", "-two", "go", "-test", "this"},
+			},
+			expected: expected{
+				err: fmt.Errorf("after two"),
+				parsed: map[string]interface{}{
+					"test": "this",
+					"one":  true,
+					"two":  true,
+				},
+			},
+		},
+		{
+			name: "one two go -test=this -one",
+			input: input{
+				args: []string{"one", "two", "go", "-test=this", "-two", "-one"},
+			},
+			expected: expected{
+				err: fmt.Errorf("after two"),
+				parsed: map[string]interface{}{
+					"test": "this",
+					"one":  true,
+					"two":  true,
+				},
+			},
+		},
+		{
+			name: "one two three go",
+			input: input{
+				args: []string{"one", "two", "three", "go"},
+			},
+			expected: expected{
+				err: fmt.Errorf("after three"),
+				parsed: map[string]interface{}{
+					"one":   false,
+					"two":   false,
+					"three": false,
+				},
+			},
+		},
+		{
+			name: "one -one two -two three -three=true go -test this",
+			input: input{
+				args: []string{"one", "-one", "two", "-two", "three", "-three=true", "go", "-test", "this"},
+			},
+			expected: expected{
+				err: fmt.Errorf("after three"),
+				parsed: map[string]interface{}{
+					"test":  "this",
+					"one":   true,
+					"two":   true,
+					"three": true,
+				},
+			},
+		},
+		{
+			name: "one two three go -test=this -two -three -one",
+			input: input{
+				args: []string{"one", "two", "three", "go", "-test=this", "-two", "-three", "-one"},
+			},
+			expected: expected{
+				err: fmt.Errorf("after three"),
+				parsed: map[string]interface{}{
+					"test":  "this",
+					"one":   true,
+					"two":   true,
+					"three": true,
+				},
+			},
+		},
+	}
+
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+
+			testRouter := newRouter()
+			testRouter.Handle("go", &testHandlerWithFlags{
+				t:             t,
+				expectedFlags: test.expected.parsed,
+				response:      "top",
+			})
+			testRouter.Route("one", func(r Router) {
+				r.Flags(FlagHandlerFunction(func(fd FlagDefiner) {
+					fd.Bool("one", false, "")
+				}))
+				r.Handle("go", &testHandlerWithFlags{
+					t:             t,
+					expectedFlags: test.expected.parsed,
+					response:      "after one",
+				})
+				r.Route("two", func(r Router) {
+					r.Flags(FlagHandlerFunction(func(fd FlagDefiner) {
+						fd.Bool("two", false, "")
+					}))
+					r.Handle("go", &testHandlerWithFlags{
+						t:             t,
+						expectedFlags: test.expected.parsed,
+						response:      "after two",
+					})
+					r.Route("three", func(r Router) {
+						r.Flags(FlagHandlerFunction(func(fd FlagDefiner) {
+							fd.Bool("three", false, "")
+						}))
+						r.Handle("go", &testHandlerWithFlags{
+							t:             t,
+							expectedFlags: test.expected.parsed,
+							response:      "after three",
+						})
+					})
+				})
+			})
+
+			flagSet := NewDefaultFlagSet()
+
+			errWriter := &bytes.Buffer{}
+
+			writer := NewWrapperWriter(context.Background(), &bytes.Buffer{}, errWriter)
+			request := NewRequest([]string{}, test.input.args, flagSet, testRouter)
+			actual := testRouter.Execute(writer, request)
+
+			assert.Equal(t, test.expected.err, actual)
+			assert.Equal(t, test.expected.parseError, errWriter.String())
+		})
+	}
 }

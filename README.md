@@ -1,5 +1,5 @@
 [![codecov](https://codecov.io/gh/evilmonkeyinc/golang-cli/branch/main/graph/badge.svg?token=4PU85I7J2R)](https://codecov.io/gh/evilmonkeyinc/golang-cli)
-[![coverage](https://github.com/evilmonkeyinc/golang-cli/actions/workflows/coverage.yaml/badge.svg?branch=main)](https://github.com/evilmonkeyinc/golang-cli/actions/workflows/other.yaml)
+[![test](https://github.com/evilmonkeyinc/golang-cli/actions/workflows/test.yaml/badge.svg?branch=main)](https://github.com/evilmonkeyinc/golang-cli/actions/workflows/test.yaml)
 [![Go Reference](https://pkg.go.dev/badge/github.com/evilmonkeyinc/golang-cli.svg)](https://pkg.go.dev/github.com/evilmonkeyinc/golang-cli)
 
 > This library is on the unstable version v0.X.X, which means there is a chance that any minor update may introduce a breaking change. Where I will endeavor to avoid this, care should be taken updating your dependency on this library until the first stable release v1.0.0 at which point any future breaking changes will result in a new major release.
@@ -51,8 +51,8 @@ Middleware can also be used to manipulate the shell handler functions ResponseWr
 Groups allow you to define a new inline-router to the shell router stack.
 
 ```golang
-    newShell.Group(func(r shell.Router) {
-		...
+	newShell.Group(func(r shell.Router) {
+	...
 	})
 ```
 
@@ -65,7 +65,7 @@ routing instructions to handle sub-commands for the shell.
 
 ```golang
     newShell.Route("users", func(r shell.Router) {
-	    r.HandleFunction("add", func(rw shell.ResponseWriter, r *shell.Request) error { return nil })
+		r.HandleFunction("add", func(rw shell.ResponseWriter, r *shell.Request) error { return nil })
 		r.HandleFunction("list", func(rw shell.ResponseWriter, r *shell.Request) error { return nil })
 	})
 ```
@@ -83,9 +83,9 @@ Routes will also support specific middleware for these sub-commands in the same 
 The Handle and HandleFunction functions add shell handlers to the router stack. 
 
 ```golang
-    newShell.Handle("help", &commands.HelpCommand{})
+	newShell.Handle("help", &commands.HelpCommand{})
 	newShell.HandleFunction("ping", func(rw shell.ResponseWriter, r *shell.Request) error {
-        fmt.Fprintln(rw, "pong")
+		fmt.Fprintln(rw, "pong")
 		return nil
 	})
 ```
@@ -93,6 +93,50 @@ The Handle and HandleFunction functions add shell handlers to the router stack.
 ```bash
 ./yourcli ping
 pong
+```
+
+### Flags
+
+It is possible to define global flags directly on the shell, or on each route using the `Flags()` function
+
+```golang
+	newShell := new(shell.Shell)
+	newShell.Flags(shell.FlagHandlerFunction(func(fd shell.FlagDefiner) {
+		fd.Bool("toUpper", false, "")
+	}))
+```
+
+It is also possible to allow individual commands define flags if the Handler also conforms to the FlagHandler interface, as the sample Command struct does.
+
+```golang
+	pingCommand := &commands.Command{
+		...
+		Flags: func(fd shell.FlagDefiner) {
+			fd.String("suffix", "", "")
+		},
+		...
+	}
+```
+
+These flags can be set on the command-line at any point after they are defined, so if they are defined globally on the shell then it could be set any time after the package is executed and would give the same result
+
+```base
+.my-cli -toUpper ping
+> PONG
+
+.my-cli ping -toUpper
+> PONG
+```
+
+but those flags defined in routes or commands will be ignored if used before they are defined
+
+```base
+.my-cli ping -suffix=go
+> ponggo
+
+.my-cli -suffix=go ping
+> flag provided but not defined: -suffix
+> pong
 ```
 
 ## Examples

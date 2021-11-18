@@ -10,7 +10,15 @@ type Command struct {
 	Name        string
 	Summary     string
 	Description string
+	Flags       shell.FlagHandlerFunction
 	Function    shell.HandlerFunction
+}
+
+// Define allows the function to define command-line
+func (command *Command) Define(flagDefiner shell.FlagDefiner) {
+	if command.Flags != nil {
+		command.Flags(flagDefiner)
+	}
 }
 
 // Execute will execute the command function

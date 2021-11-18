@@ -1,4 +1,6 @@
 on:
+  push:
+    branches: [ main ]
   pull_request:
     branches: [ main ]
 jobs:
@@ -15,4 +17,4 @@ jobs:
         go mod download
     - name: Run Test
       run: |
-        go test -v -count=1 ./...
+        go test -v -count=10 ./...

@@ -1,6 +1,7 @@
 package shell
 
 import (
+	"fmt"
 	"strings"
 
 	"github.com/evilmonkeyinc/golang-cli/pkg/errors"
@@ -10,18 +11,21 @@ import (
 type Router interface {
 	Handler
 	Routes
-	// Use appends one or more middleware onto the router stack.
-	Use(...Middleware)
+	// Flags adds a FlagHandler that will add flags to the request FlagSet before
+	// it attempts to match a command.
+	Flags(FlagHandler)
 	// Group adds a new inline-router to the router stack.
 	Group(func(r Router)) Router
-	// Route adds a new sub-router to the router stack, along the specified command path.
-	Route(string, func(r Router)) Router
 	// Handle adds a shell handler to the router stack, along the specified command path.
 	Handle(string, Handler)
 	// HandleFunction adds a shell handler function to the router stack, along the specified command path.
 	HandleFunction(string, HandlerFunction)
-	// NotFound defines a shell handler that will respond if a command path cannot be evaluated.
+	// Route adds a new sub-router to the router stack, along the specified command path.
 	NotFound(Handler)
+	// Use appends one or more middleware onto the router stack.
+	Route(string, func(r Router)) Router
+	// NotFound defines a shell handler that will respond if a command path cannot be evaluated.
+	Use(...Middleware)
 }
 
 // Routes interface describes functions for router traversal.
@@ -41,57 +45,81 @@ func newRouter() *router {
 		children:        []Router{},
 		handlers:        map[string]Handler{},
 		middleware:      []Middleware{},
-		parent:          nil,
 		notFoundHandler: nil,
+		parent:          nil,
 	}
 }
 
 // childRouter will create a new sub router as an inline group router
 func childRouter(rtr *router) *router {
 	return &router{
+		children:        []Router{},
 		handlers:        map[string]Handler{},
 		middleware:      []Middleware{},
-		parent:          rtr,
-		children:        []Router{},
 		notFoundHandler: rtr.notFoundHandler,
+		parent:          rtr,
 	}
 }
 
 // subRouter will create a new sub router as a sub command router
 func subRouter(rtr *router) *router {
 	return &router{
+		children:        []Router{},
 		handlers:        map[string]Handler{},
 		middleware:      []Middleware{},
-		parent:          nil,
-		children:        []Router{},
 		notFoundHandler: rtr.notFoundHandler,
+		parent:          nil,
 	}
 }
 
 type router struct {
-	handlers   map[string]Handler
-	middleware []Middleware
-
-	parent   Router
-	children []Router
-
+	children        []Router
+	flags           FlagHandler
+	handlers        map[string]Handler
+	middleware      []Middleware
 	notFoundHandler Handler
+	parent          Router
 }
 
 func (rtr *router) Execute(writer ResponseWriter, request *Request) error {
 	args := request.Args
+	flagSet := request.FlagSet
+
 	if handler, found := rtr.Match(args); found {
-		request = request.WithRoutes(args[0], rtr)
+		currentRoute := args[0]
+		flagSet = flagSet.SubFlagSet(currentRoute)
+		if flagHandler, ok := handler.(FlagHandler); ok {
+			flagHandler.Define(flagSet)
+		}
+		var parseErr error = nil
+		if args, parseErr = flagSet.Parse(args[1:]); parseErr != nil {
+			// TODO : check for ErrHelp
+			fmt.Fprintln(writer.ErrorWriter(), parseErr.Error())
+		}
+		request = request.UpdateRequest(currentRoute, args, flagSet, rtr)
 		return handler.Execute(writer, request)
 	}
 
 	if rtr.notFoundHandler != nil {
-		handler := chain(rtr.middleware, rtr.notFoundHandler)
+		handler := &chainHandler{
+			handler:     rtr.notFoundHandler,
+			middlewares: rtr.middleware,
+		}
+		request = request.UpdateRequest("", args, flagSet, rtr)
 		return handler.Execute(writer, request)
-
 	}
 
 	return nil
+}
+
+func (rtr *router) Flags(fn FlagHandler) {
+	rtr.flags = fn
+}
+
+func (rtr *router) Define(fd FlagDefiner) {
+	if rtr.flags != nil {
+		rtr.flags.Define(fd)
+	}
 }
 
 func (rtr *router) Routes() map[string]Handler {
@@ -110,13 +138,19 @@ func (rtr *router) Match(args []string) (Handler, bool) {
 	arg := args[0]
 	for key, handler := range rtr.handlers {
 		if strings.EqualFold(arg, key) {
-			return chain(rtr.middleware, handler), true
+			return &chainHandler{
+				handler:     handler,
+				middlewares: rtr.middleware,
+			}, true
 		}
 	}
 
 	for _, sub := range rtr.children {
 		if handler, found := sub.Match(args); found {
-			return chain(rtr.middleware, handler), true
+			return &chainHandler{
+				handler:     handler,
+				middlewares: rtr.middleware,
+			}, true
 		}
 	}
 
