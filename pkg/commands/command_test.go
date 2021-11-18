@@ -33,11 +33,31 @@ func Test_Command(t *testing.T) {
 			},
 			expected: fmt.Errorf("found"),
 		},
+		{
+			name: "found with flags",
+			input: &Command{
+				Name: "found",
+				Flags: func(fd shell.FlagDefiner) {
+					fd.Bool("suffix", false, "")
+				},
+				Function: func(rw shell.ResponseWriter, r *shell.Request) error {
+					includeSuffix := r.FlagValues().GetBool("suffix")
+					if includeSuffix != nil && *includeSuffix {
+						return fmt.Errorf("found with suffix")
+					}
+					return fmt.Errorf("found without suffix")
+				},
+			},
+			expected: fmt.Errorf("found with suffix"),
+		},
 	}
 
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
-			actual := test.input.Execute(nil, nil)
+			flagSet := &shell.DefaultFlagSet{}
+			test.input.Define(flagSet)
+			flagSet.Parse([]string{"-suffix"})
+			actual := test.input.Execute(nil, shell.NewRequest(nil, nil, flagSet, nil))
 			assert.Equal(t, test.expected, actual)
 		})
 	}

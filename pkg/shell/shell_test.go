@@ -88,6 +88,39 @@ func Test_Shell(t *testing.T) {
 		assert.NotNil(t, testRouter.notFoundHandler)
 	})
 
+	t.Run("Flags", func(t *testing.T) {
+
+		testRouter := newRouter()
+
+		actual := &Shell{}
+		actual.router = testRouter
+
+		assert.Nil(t, testRouter.flags)
+		actual.Flags(FlagHandlerFunction(func(fd FlagDefiner) {
+
+		}))
+		assert.NotNil(t, testRouter.flags)
+	})
+
+	t.Run("Missing Flags", func(t *testing.T) {
+
+		testRouter := newRouter()
+		errWriter := &bytes.Buffer{}
+
+		actual := &Shell{}
+		actual.router = testRouter
+		actual.errorWriter = errWriter
+
+		assert.Nil(t, testRouter.flags)
+		actual.Flags(FlagHandlerFunction(func(fd FlagDefiner) {
+			fd.Bool("found", false, "")
+		}))
+		assert.NotNil(t, testRouter.flags)
+
+		actual.execute(context.Background(), []string{"-found", "-missing"})
+		assert.Equal(t, "flag provided but not defined: -missing\n", errWriter.String())
+	})
+
 }
 
 func Test_Shell_execute(t *testing.T) {

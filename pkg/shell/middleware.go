@@ -14,15 +14,31 @@ type Middleware interface {
 	Handle(next Handler) Handler
 }
 
-func chain(middlewares []Middleware, handler Handler) Handler {
-	if len(middlewares) == 0 {
-		return handler
+type chainHandler struct {
+	handler     Handler
+	middlewares []Middleware
+}
+
+func (chain *chainHandler) Define(flagDefiner FlagDefiner) {
+	if flagHandler, ok := chain.handler.(FlagHandler); ok {
+		flagHandler.Define(flagDefiner)
+	}
+}
+
+func (chain *chainHandler) Execute(rw ResponseWriter, r *Request) error {
+	return chain.chain().Execute(rw, r)
+}
+
+func (chain *chainHandler) chain() Handler {
+	chainMiddleware := chain.middlewares
+	if len(chainMiddleware) == 0 {
+		return chain.handler
 	}
 
-	chainedHandler := handler
-	chainedHandler = middlewares[len(middlewares)-1].Handle(chainedHandler)
-	for i := len(middlewares) - 2; i >= 0; i-- {
-		chainedHandler = middlewares[i].Handle(chainedHandler)
+	chainedHandler := chain.handler
+	chainedHandler = chainMiddleware[len(chainMiddleware)-1].Handle(chainedHandler)
+	for i := len(chainMiddleware) - 2; i >= 0; i-- {
+		chainedHandler = chainMiddleware[i].Handle(chainedHandler)
 	}
 	return chainedHandler
 }

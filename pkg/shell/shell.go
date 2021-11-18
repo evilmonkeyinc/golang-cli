@@ -18,38 +18,54 @@ const (
 // The shell can be execute as a command-line tool by using the Execute function
 // or to be run as an interactive shell using the Start function
 type Shell struct {
-	shellPrompt  string
-	router       Router
-	reader       io.Reader
-	outputWriter io.Writer
-	errorWriter  io.Writer
 	closed       chan struct{}
+	errorWriter  io.Writer
+	flagSet      FlagSet
+	outputWriter io.Writer
+	reader       io.Reader
+	router       Router
+	shellPrompt  string
 }
 
 func (shell *Shell) setup() {
-	if shell.shellPrompt == "" {
-		shell.shellPrompt = defaultShellPrompt
-	}
-	if shell.router == nil {
-		shell.router = newRouter()
-	}
-	if shell.outputWriter == nil {
-		shell.outputWriter = os.Stdout
+	if shell.closed == nil {
+		shell.closed = make(chan struct{})
 	}
 	if shell.errorWriter == nil {
 		shell.errorWriter = os.Stderr
 	}
+	if shell.flagSet == nil {
+		shell.flagSet = NewDefaultFlagSet()
+	}
+	if shell.outputWriter == nil {
+		shell.outputWriter = os.Stdout
+	}
 	if shell.reader == nil {
 		shell.reader = os.Stdin
 	}
-	if shell.closed == nil {
-		shell.closed = make(chan struct{})
+	if shell.router == nil {
+		shell.router = newRouter()
+	}
+	if shell.shellPrompt == "" {
+		shell.shellPrompt = defaultShellPrompt
 	}
 }
 
 func (shell *Shell) execute(ctx context.Context, args []string) error {
-	request := NewRequestWithContext(ctx, []string{}, args, shell.router)
 	writer := NewWrapperWriter(ctx, shell.outputWriter, shell.errorWriter)
+
+	flagSet := shell.flagSet
+	if flagHandler, ok := shell.router.(FlagHandler); ok {
+		flagSet = flagSet.SubFlagSet("")
+		flagHandler.Define(flagSet)
+		var parseErr error = nil
+		if args, parseErr = flagSet.Parse(args); parseErr != nil {
+			// TODO : check for ErrHelp
+			fmt.Fprintln(writer.ErrorWriter(), parseErr.Error())
+		}
+	}
+
+	request := NewRequestWithContext(ctx, []string{}, args, flagSet, shell.router)
 	return shell.router.Execute(writer, request)
 }
 
@@ -69,6 +85,13 @@ func (shell *Shell) Options(options ...Option) error {
 func (shell *Shell) Use(middleware ...Middleware) {
 	shell.setup()
 	shell.router.Use(middleware...)
+}
+
+// Flags adds a FlagHandler that will add flags to the request FlagSet before
+// it attempts to match a command.
+func (shell *Shell) Flags(fn FlagHandler) {
+	shell.setup()
+	shell.router.Flags(fn)
 }
 
 // Group adds a new inline-router to the router stack.

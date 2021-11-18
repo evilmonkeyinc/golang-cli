@@ -6,17 +6,18 @@ import (
 )
 
 // NewRequest wraps NewRequestWithContext using context.Background.
-func NewRequest(path, args []string, routes Routes) *Request {
-	return NewRequestWithContext(context.Background(), path, args, routes)
+func NewRequest(path, args []string, flagSet FlagSet, routes Routes) *Request {
+	return NewRequestWithContext(context.Background(), path, args, flagSet, routes)
 }
 
 // NewRequestWithContext returns a new Request given a path, args, and routes.
-func NewRequestWithContext(ctx context.Context, path, args []string, routes Routes) *Request {
+func NewRequestWithContext(ctx context.Context, path, args []string, flagSet FlagSet, routes Routes) *Request {
 	return &Request{
-		ctx:    ctx,
-		Args:   args,
-		Path:   path,
-		Routes: routes,
+		ctx:     ctx,
+		Args:    args,
+		FlagSet: flagSet,
+		Path:    path,
+		Routes:  routes,
 	}
 }
 
@@ -26,6 +27,8 @@ type Request struct {
 
 	// Args contains the arguments passed as part of the request.
 	Args []string
+	// Flagset contains the flagset used to parse arguments.
+	FlagSet FlagSet
 	// Path contains the request path.
 	Path []string
 	// Routes contains the router routes functions linked to the executed router.
@@ -37,6 +40,11 @@ func (request *Request) Context() context.Context {
 	return request.ctx
 }
 
+// FlagValues returns the parsed flag values for the request flagset.
+func (request *Request) FlagValues() FlagValues {
+	return request.FlagSet
+}
+
 // WithContext returns a shallow copy of the request with its context changed to ctx.
 func (request *Request) WithContext(ctx context.Context) *Request {
 	args := make([]string, len(request.Args))
@@ -46,18 +54,20 @@ func (request *Request) WithContext(ctx context.Context) *Request {
 	copy(path, request.Path)
 
 	return &Request{
-		ctx:    ctx,
-		Args:   args,
-		Path:   path,
-		Routes: request.Routes,
+		ctx:     ctx,
+		Args:    args,
+		FlagSet: request.FlagSet,
+		Path:    path,
+		Routes:  request.Routes,
 	}
 }
 
-// WithRoutes returns a shallow copy of the request with updated Routes,
-// the selected route added to paths array, and removed from the args array
-func (request *Request) WithRoutes(selectedRoute string, routes Routes) *Request {
-	args := make([]string, len(request.Args))
-	copy(args, request.Args)
+// UpdateRequest returns a shallow copy of the request with updated path, args, flagset, and routes.
+func (request *Request) UpdateRequest(selectedRoute string, args []string, flagSet FlagSet, routes Routes) *Request {
+	if args == nil {
+		args = make([]string, len(request.Args))
+		copy(args, request.Args)
+	}
 
 	path := make([]string, len(request.Path))
 	copy(path, request.Path)
@@ -73,10 +83,15 @@ func (request *Request) WithRoutes(selectedRoute string, routes Routes) *Request
 		routes = request.Routes
 	}
 
+	if flagSet == nil {
+		flagSet = request.FlagSet
+	}
+
 	return &Request{
-		ctx:    request.ctx,
-		Args:   args,
-		Path:   path,
-		Routes: routes,
+		ctx:     request.ctx,
+		Args:    args,
+		FlagSet: flagSet,
+		Path:    path,
+		Routes:  routes,
 	}
 }

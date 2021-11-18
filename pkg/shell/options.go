@@ -107,3 +107,25 @@ func (option *shellPromptOption) Apply(shell *Shell) error {
 	shell.shellPrompt = option.shellPrompt
 	return nil
 }
+
+// OptionFlagSet shell option allows the user to set the FlagSet used by the shell.
+func OptionFlagSet(flagSet FlagSet) Option {
+	if flagSet == nil {
+		panic(errors.OptionIsInvalid("FlagSet"))
+	}
+	return &flagSetOption{
+		flagSet: flagSet,
+	}
+}
+
+type flagSetOption struct {
+	flagSet FlagSet
+}
+
+func (option *flagSetOption) Apply(shell *Shell) error {
+	if shell.flagSet != nil {
+		return errors.OptionIsSet("FlagSet")
+	}
+	shell.flagSet = option.flagSet
+	return nil
+}
