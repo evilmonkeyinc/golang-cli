@@ -4,8 +4,8 @@ import (
 	"fmt"
 	"testing"
 
-	"github.com/evilmonkeyinc/golang-cli/pkg/errors"
-	"github.com/evilmonkeyinc/golang-cli/pkg/shell"
+	"github.com/evilmonkeyinc/golang-cli/errors"
+	"github.com/evilmonkeyinc/golang-cli/shell"
 	"github.com/stretchr/testify/assert"
 )
 

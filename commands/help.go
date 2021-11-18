@@ -3,7 +3,7 @@ package commands
 import (
 	"fmt"
 
-	"github.com/evilmonkeyinc/golang-cli/pkg/shell"
+	"github.com/evilmonkeyinc/golang-cli/shell"
 )
 
 // HelpCommand allows for basic output of command metadata.
