@@ -459,6 +459,18 @@ func Test_DefaultFlagSet_Get(t *testing.T) {
 		assert.Nil(t, missing)
 	})
 
+	t.Run("Var", func(t *testing.T) {
+		arrayFlag := &StringArrayFlag{
+			"one", "two", "three",
+		}
+
+		flagSet := &DefaultFlagSet{}
+		flagSet.Var(arrayFlag, "valid", "")
+
+		valid := flagSet.Get("valid")
+		assert.Equal(t, arrayFlag.Get(), valid)
+	})
+
 	t.Run("GetCustom", func(t *testing.T) {
 
 		val := customFlagValue("value")
