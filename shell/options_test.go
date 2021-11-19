@@ -9,6 +9,7 @@ import (
 	"testing"
 
 	"github.com/evilmonkeyinc/golang-cli/errors"
+	"github.com/evilmonkeyinc/golang-cli/flags"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -193,7 +194,7 @@ func Test_OptionFlagSet(t *testing.T) {
 	})
 
 	t.Run("not set", func(t *testing.T) {
-		flagSet := NewDefaultFlagSetWithBase(nil)
+		flagSet := flags.NewDefaultFlagSetWithBase(nil)
 
 		option := OptionFlagSet(flagSet)
 		shell := &Shell{}
@@ -204,11 +205,11 @@ func Test_OptionFlagSet(t *testing.T) {
 	})
 
 	t.Run("already set", func(t *testing.T) {
-		flagSet := NewDefaultFlagSetWithBase(flag.CommandLine)
+		flagSet := flags.NewDefaultFlagSetWithBase(flag.CommandLine)
 
 		option := OptionFlagSet(flagSet)
 		shell := &Shell{
-			flagSet: NewDefaultFlagSetWithBase(nil),
+			flagSet: flags.NewDefaultFlagSetWithBase(nil),
 		}
 		err := option.Apply(shell)
 

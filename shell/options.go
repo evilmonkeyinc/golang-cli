@@ -4,6 +4,7 @@ import (
 	"io"
 
 	"github.com/evilmonkeyinc/golang-cli/errors"
+	"github.com/evilmonkeyinc/golang-cli/flags"
 )
 
 // The OptionFunction type is an adapter to allow the use of ordinary functions as shell options.
@@ -109,7 +110,7 @@ func (option *shellPromptOption) Apply(shell *Shell) error {
 }
 
 // OptionFlagSet shell option allows the user to set the FlagSet used by the shell.
-func OptionFlagSet(flagSet FlagSet) Option {
+func OptionFlagSet(flagSet flags.FlagSet) Option {
 	if flagSet == nil {
 		panic(errors.OptionIsInvalid("FlagSet"))
 	}
@@ -119,7 +120,7 @@ func OptionFlagSet(flagSet FlagSet) Option {
 }
 
 type flagSetOption struct {
-	flagSet FlagSet
+	flagSet flags.FlagSet
 }
 
 func (option *flagSetOption) Apply(shell *Shell) error {

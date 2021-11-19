@@ -3,15 +3,17 @@ package shell
 import (
 	"context"
 	"strings"
+
+	"github.com/evilmonkeyinc/golang-cli/flags"
 )
 
 // NewRequest wraps NewRequestWithContext using context.Background.
-func NewRequest(path, args []string, flagSet FlagSet, routes Routes) *Request {
+func NewRequest(path, args []string, flagSet flags.FlagSet, routes Routes) *Request {
 	return NewRequestWithContext(context.Background(), path, args, flagSet, routes)
 }
 
 // NewRequestWithContext returns a new Request given a path, args, and routes.
-func NewRequestWithContext(ctx context.Context, path, args []string, flagSet FlagSet, routes Routes) *Request {
+func NewRequestWithContext(ctx context.Context, path, args []string, flagSet flags.FlagSet, routes Routes) *Request {
 	return &Request{
 		ctx:     ctx,
 		Args:    args,
@@ -28,7 +30,7 @@ type Request struct {
 	// Args contains the arguments passed as part of the request.
 	Args []string
 	// Flagset contains the flagset used to parse arguments.
-	FlagSet FlagSet
+	FlagSet flags.FlagSet
 	// Path contains the request path.
 	Path []string
 	// Routes contains the router routes functions linked to the executed router.
@@ -41,7 +43,7 @@ func (request *Request) Context() context.Context {
 }
 
 // FlagValues returns the parsed flag values for the request flagset.
-func (request *Request) FlagValues() FlagValues {
+func (request *Request) FlagValues() flags.FlagValues {
 	return request.FlagSet
 }
 
@@ -63,7 +65,7 @@ func (request *Request) WithContext(ctx context.Context) *Request {
 }
 
 // UpdateRequest returns a shallow copy of the request with updated path, args, flagset, and routes.
-func (request *Request) UpdateRequest(selectedRoute string, args []string, flagSet FlagSet, routes Routes) *Request {
+func (request *Request) UpdateRequest(selectedRoute string, args []string, flagSet flags.FlagSet, routes Routes) *Request {
 	if args == nil {
 		args = make([]string, len(request.Args))
 		copy(args, request.Args)

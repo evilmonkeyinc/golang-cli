@@ -1,5 +1,7 @@
 package shell
 
+import "github.com/evilmonkeyinc/golang-cli/flags"
+
 // The MiddlewareFunction type is an adapter to allow the use of ordinary functions as shell middleware.
 type MiddlewareFunction func(next Handler) Handler
 
@@ -19,8 +21,8 @@ type chainHandler struct {
 	middlewares []Middleware
 }
 
-func (chain *chainHandler) Define(flagDefiner FlagDefiner) {
-	if flagHandler, ok := chain.handler.(FlagHandler); ok {
+func (chain *chainHandler) Define(flagDefiner flags.FlagDefiner) {
+	if flagHandler, ok := chain.handler.(flags.FlagHandler); ok {
 		flagHandler.Define(flagDefiner)
 	}
 }

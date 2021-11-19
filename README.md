@@ -101,7 +101,7 @@ It is possible to define global flags directly on the shell, or on each route us
 
 ```golang
 	newShell := new(shell.Shell)
-	newShell.Flags(shell.FlagHandlerFunction(func(fd shell.FlagDefiner) {
+	newShell.Flags(flags.FlagHandlerFunction(func(fd flags.FlagDefiner) {
 		fd.Bool("toUpper", false, "")
 	}))
 ```
@@ -111,7 +111,7 @@ It is also possible to allow individual commands define flags if the Handler als
 ```golang
 	pingCommand := &commands.Command{
 		...
-		Flags: func(fd shell.FlagDefiner) {
+		Flags: func(fd flags.FlagDefiner) {
 			fd.String("suffix", "", "")
 		},
 		...

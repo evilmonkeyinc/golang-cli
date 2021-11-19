@@ -10,6 +10,7 @@ import (
 	"syscall"
 	"testing"
 
+	"github.com/evilmonkeyinc/golang-cli/flags"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -96,7 +97,7 @@ func Test_Shell(t *testing.T) {
 		actual.router = testRouter
 
 		assert.Nil(t, testRouter.flags)
-		actual.Flags(FlagHandlerFunction(func(fd FlagDefiner) {
+		actual.Flags(flags.FlagHandlerFunction(func(fd flags.FlagDefiner) {
 
 		}))
 		assert.NotNil(t, testRouter.flags)
@@ -112,7 +113,7 @@ func Test_Shell(t *testing.T) {
 		actual.errorWriter = errWriter
 
 		assert.Nil(t, testRouter.flags)
-		actual.Flags(FlagHandlerFunction(func(fd FlagDefiner) {
+		actual.Flags(flags.FlagHandlerFunction(func(fd flags.FlagDefiner) {
 			fd.Bool("found", false, "")
 		}))
 		assert.NotNil(t, testRouter.flags)

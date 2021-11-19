@@ -2,6 +2,7 @@ package commands
 
 import (
 	"github.com/evilmonkeyinc/golang-cli/errors"
+	"github.com/evilmonkeyinc/golang-cli/flags"
 	"github.com/evilmonkeyinc/golang-cli/shell"
 )
 
@@ -10,12 +11,12 @@ type Command struct {
 	Name        string
 	Summary     string
 	Description string
-	Flags       shell.FlagHandlerFunction
+	Flags       flags.FlagHandlerFunction
 	Function    shell.HandlerFunction
 }
 
 // Define allows the function to define command-line
-func (command *Command) Define(flagDefiner shell.FlagDefiner) {
+func (command *Command) Define(flagDefiner flags.FlagDefiner) {
 	if command.Flags != nil {
 		command.Flags(flagDefiner)
 	}

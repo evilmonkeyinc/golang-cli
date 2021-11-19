@@ -7,6 +7,7 @@ import (
 	"testing"
 
 	"github.com/evilmonkeyinc/golang-cli/errors"
+	"github.com/evilmonkeyinc/golang-cli/flags"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -108,7 +109,7 @@ func Test_Router_Execute(t *testing.T) {
 	router := newRouter()
 
 	t.Run("empty", func(t *testing.T) {
-		request := NewRequest([]string{}, []string{"anything"}, &DefaultFlagSet{}, nil)
+		request := NewRequest([]string{}, []string{"anything"}, &flags.DefaultFlagSet{}, nil)
 		actual := router.Execute(nil, request)
 		assert.Nil(t, actual)
 	})
@@ -139,7 +140,7 @@ func Test_Router_Execute(t *testing.T) {
 
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
-			request := NewRequest([]string{}, []string{test.input}, &DefaultFlagSet{}, nil)
+			request := NewRequest([]string{}, []string{test.input}, &flags.DefaultFlagSet{}, nil)
 			actual := router.Execute(nil, request)
 			assert.Equal(t, test.expected, actual)
 		})
@@ -252,7 +253,7 @@ func Test_Router_Match(t *testing.T) {
 			assert.Equal(t, test.expected.found, found)
 
 			if handler != nil {
-				request := NewRequest([]string{}, test.input[1:], &DefaultFlagSet{}, router)
+				request := NewRequest([]string{}, test.input[1:], &flags.DefaultFlagSet{}, router)
 				err := handler.Execute(nil, request)
 
 				if test.expected.err != nil {
@@ -279,7 +280,7 @@ func Test_Router_Group(t *testing.T) {
 
 	assert.Contains(t, router.children, actual)
 
-	request := NewRequest([]string{}, []string{"found"}, &DefaultFlagSet{}, nil)
+	request := NewRequest([]string{}, []string{"found"}, &flags.DefaultFlagSet{}, nil)
 	direct := actual.Execute(nil, request)
 	parent := router.Execute(nil, request)
 
@@ -298,10 +299,10 @@ func Test_Router_Route(t *testing.T) {
 
 		assert.Contains(t, router.handlers, "route")
 
-		request := NewRequest([]string{}, []string{"route", "found"}, &DefaultFlagSet{}, nil)
+		request := NewRequest([]string{}, []string{"route", "found"}, &flags.DefaultFlagSet{}, nil)
 		parent := router.Execute(nil, request)
 
-		request = NewRequest([]string{}, []string{"found"}, &DefaultFlagSet{}, nil)
+		request = NewRequest([]string{}, []string{"found"}, &flags.DefaultFlagSet{}, nil)
 		direct := subRouter.Execute(nil, request)
 
 		assert.Equal(t, fmt.Errorf("found"), parent)
@@ -367,7 +368,7 @@ type testHandlerWithFlags struct {
 	expectedFlags map[string]interface{}
 }
 
-func (handler *testHandlerWithFlags) Define(fd FlagDefiner) {
+func (handler *testHandlerWithFlags) Define(fd flags.FlagDefiner) {
 	fd.String("test", "", "")
 }
 
@@ -578,7 +579,7 @@ func Test_Router_Flags(t *testing.T) {
 				response:      "top",
 			})
 			testRouter.Route("one", func(r Router) {
-				r.Flags(FlagHandlerFunction(func(fd FlagDefiner) {
+				r.Flags(flags.FlagHandlerFunction(func(fd flags.FlagDefiner) {
 					fd.Bool("one", false, "")
 				}))
 				r.Handle("go", &testHandlerWithFlags{
@@ -587,7 +588,7 @@ func Test_Router_Flags(t *testing.T) {
 					response:      "after one",
 				})
 				r.Route("two", func(r Router) {
-					r.Flags(FlagHandlerFunction(func(fd FlagDefiner) {
+					r.Flags(flags.FlagHandlerFunction(func(fd flags.FlagDefiner) {
 						fd.Bool("two", false, "")
 					}))
 					r.Handle("go", &testHandlerWithFlags{
@@ -596,7 +597,7 @@ func Test_Router_Flags(t *testing.T) {
 						response:      "after two",
 					})
 					r.Route("three", func(r Router) {
-						r.Flags(FlagHandlerFunction(func(fd FlagDefiner) {
+						r.Flags(flags.FlagHandlerFunction(func(fd flags.FlagDefiner) {
 							fd.Bool("three", false, "")
 						}))
 						r.Handle("go", &testHandlerWithFlags{
@@ -608,7 +609,7 @@ func Test_Router_Flags(t *testing.T) {
 				})
 			})
 
-			flagSet := NewDefaultFlagSet()
+			flagSet := flags.NewDefaultFlagSet()
 
 			errWriter := &bytes.Buffer{}
 

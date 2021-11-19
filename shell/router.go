@@ -5,6 +5,7 @@ import (
 	"strings"
 
 	"github.com/evilmonkeyinc/golang-cli/errors"
+	"github.com/evilmonkeyinc/golang-cli/flags"
 )
 
 // The Router interface details the core shell router functions.
@@ -13,7 +14,7 @@ type Router interface {
 	Routes
 	// Flags adds a FlagHandler that will add flags to the request FlagSet before
 	// it attempts to match a command.
-	Flags(FlagHandler)
+	Flags(flags.FlagHandler)
 	// Group adds a new inline-router to the router stack.
 	Group(func(r Router)) Router
 	// Handle adds a shell handler to the router stack, along the specified command path.
@@ -74,7 +75,7 @@ func subRouter(rtr *router) *router {
 
 type router struct {
 	children        []Router
-	flags           FlagHandler
+	flags           flags.FlagHandler
 	handlers        map[string]Handler
 	middleware      []Middleware
 	notFoundHandler Handler
@@ -88,7 +89,7 @@ func (rtr *router) Execute(writer ResponseWriter, request *Request) error {
 	if handler, found := rtr.Match(args); found {
 		currentRoute := args[0]
 		flagSet = flagSet.SubFlagSet(currentRoute)
-		if flagHandler, ok := handler.(FlagHandler); ok {
+		if flagHandler, ok := handler.(flags.FlagHandler); ok {
 			flagHandler.Define(flagSet)
 		}
 		var parseErr error = nil
@@ -112,11 +113,11 @@ func (rtr *router) Execute(writer ResponseWriter, request *Request) error {
 	return nil
 }
 
-func (rtr *router) Flags(fn FlagHandler) {
+func (rtr *router) Flags(fn flags.FlagHandler) {
 	rtr.flags = fn
 }
 
-func (rtr *router) Define(fd FlagDefiner) {
+func (rtr *router) Define(fd flags.FlagDefiner) {
 	if rtr.flags != nil {
 		rtr.flags.Define(fd)
 	}

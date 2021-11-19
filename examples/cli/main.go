@@ -6,6 +6,7 @@ import (
 	"strings"
 
 	"github.com/evilmonkeyinc/golang-cli/commands"
+	"github.com/evilmonkeyinc/golang-cli/flags"
 	"github.com/evilmonkeyinc/golang-cli/middleware"
 	"github.com/evilmonkeyinc/golang-cli/shell"
 )
@@ -18,7 +19,7 @@ func main() {
 		Name:        "Ping",
 		Summary:     "Simple ping pong command",
 		Description: "Simple command that will output the word pong",
-		Flags: func(fd shell.FlagDefiner) {
+		Flags: func(fd flags.FlagDefiner) {
 			fd.String("suffix", "", "")
 		},
 		Function: func(rw shell.ResponseWriter, r *shell.Request) error {
@@ -38,7 +39,7 @@ func main() {
 	}
 
 	newShell := new(shell.Shell)
-	newShell.Flags(shell.FlagHandlerFunction(func(fd shell.FlagDefiner) {
+	newShell.Flags(flags.FlagHandlerFunction(func(fd flags.FlagDefiner) {
 		fd.Bool("toUpper", false, "")
 	}))
 	newShell.Use(middleware.Recoverer())

@@ -7,6 +7,8 @@ import (
 	"io"
 	"os"
 	"strings"
+
+	"github.com/evilmonkeyinc/golang-cli/flags"
 )
 
 const (
@@ -20,7 +22,7 @@ const (
 type Shell struct {
 	closed       chan struct{}
 	errorWriter  io.Writer
-	flagSet      FlagSet
+	flagSet      flags.FlagSet
 	outputWriter io.Writer
 	reader       io.Reader
 	router       Router
@@ -35,7 +37,7 @@ func (shell *Shell) setup() {
 		shell.errorWriter = os.Stderr
 	}
 	if shell.flagSet == nil {
-		shell.flagSet = NewDefaultFlagSet()
+		shell.flagSet = flags.NewDefaultFlagSet()
 	}
 	if shell.outputWriter == nil {
 		shell.outputWriter = os.Stdout
@@ -55,7 +57,7 @@ func (shell *Shell) execute(ctx context.Context, args []string) error {
 	writer := NewWrapperWriter(ctx, shell.outputWriter, shell.errorWriter)
 
 	flagSet := shell.flagSet
-	if flagHandler, ok := shell.router.(FlagHandler); ok {
+	if flagHandler, ok := shell.router.(flags.FlagHandler); ok {
 		flagSet = flagSet.SubFlagSet("")
 		flagHandler.Define(flagSet)
 		var parseErr error = nil
@@ -89,7 +91,7 @@ func (shell *Shell) Use(middleware ...Middleware) {
 
 // Flags adds a FlagHandler that will add flags to the request FlagSet before
 // it attempts to match a command.
-func (shell *Shell) Flags(fn FlagHandler) {
+func (shell *Shell) Flags(fn flags.FlagHandler) {
 	shell.setup()
 	shell.router.Flags(fn)
 }

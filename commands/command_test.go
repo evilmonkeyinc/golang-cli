@@ -5,6 +5,7 @@ import (
 	"testing"
 
 	"github.com/evilmonkeyinc/golang-cli/errors"
+	"github.com/evilmonkeyinc/golang-cli/flags"
 	"github.com/evilmonkeyinc/golang-cli/shell"
 	"github.com/stretchr/testify/assert"
 )
@@ -37,7 +38,7 @@ func Test_Command(t *testing.T) {
 			name: "found with flags",
 			input: &Command{
 				Name: "found",
-				Flags: func(fd shell.FlagDefiner) {
+				Flags: func(fd flags.FlagDefiner) {
 					fd.Bool("suffix", false, "")
 				},
 				Function: func(rw shell.ResponseWriter, r *shell.Request) error {
@@ -54,7 +55,7 @@ func Test_Command(t *testing.T) {
 
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
-			flagSet := &shell.DefaultFlagSet{}
+			flagSet := &flags.DefaultFlagSet{}
 			test.input.Define(flagSet)
 			flagSet.Parse([]string{"-suffix"})
 			actual := test.input.Execute(nil, shell.NewRequest(nil, nil, flagSet, nil))
