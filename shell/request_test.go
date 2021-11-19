@@ -4,13 +4,14 @@ import (
 	"context"
 	"testing"
 
+	"github.com/evilmonkeyinc/golang-cli/flags"
 	"github.com/stretchr/testify/assert"
 )
 
 func Test_NewRequest(t *testing.T) {
 	path := []string{}
 	args := []string{"args"}
-	flagSet := &DefaultFlagSet{}
+	flagSet := &flags.DefaultFlagSet{}
 
 	actual := NewRequest(path, args, flagSet, nil)
 	assert.Equal(t, args, actual.Args)
@@ -24,7 +25,7 @@ func Test_NewRequestWithContext(t *testing.T) {
 	ctx := context.Background()
 	path := []string{}
 	args := []string{"args"}
-	flagSet := &DefaultFlagSet{}
+	flagSet := &flags.DefaultFlagSet{}
 
 	actual := NewRequestWithContext(ctx, path, args, flagSet, nil)
 	assert.Equal(t, actual.Args, args)
@@ -39,7 +40,7 @@ func Test_Request_Context(t *testing.T) {
 	args := []string{"args"}
 	path := []string{}
 
-	actual := NewRequestWithContext(ctx, path, args, &DefaultFlagSet{}, nil)
+	actual := NewRequestWithContext(ctx, path, args, &flags.DefaultFlagSet{}, nil)
 	assert.Equal(t, actual.Context(), ctx)
 }
 
@@ -48,7 +49,7 @@ func Test_Request_WithContext(t *testing.T) {
 	args := []string{"args"}
 	path := []string{}
 
-	actual := NewRequestWithContext(ctx, path, args, &DefaultFlagSet{}, nil)
+	actual := NewRequestWithContext(ctx, path, args, &flags.DefaultFlagSet{}, nil)
 	assert.Equal(t, actual.Context(), ctx)
 
 	type key string
@@ -89,7 +90,7 @@ func Test_Request_FlagValues(t *testing.T) {
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
 
-			flagSet := NewDefaultFlagSet()
+			flagSet := flags.NewDefaultFlagSet()
 			flagSet.String("string", "", "")
 			flagSet.Bool("bool", false, "")
 
@@ -162,7 +163,7 @@ func Test_Request_UpdateRequest(t *testing.T) {
 			args := []string{"one", "two", "three", "four"}
 			path := []string{}
 
-			original := NewRequestWithContext(ctx, path, args, &DefaultFlagSet{}, nil)
+			original := NewRequestWithContext(ctx, path, args, &flags.DefaultFlagSet{}, nil)
 			updated := original.UpdateRequest(test.input.selectedRoute, nil, nil, nil)
 
 			assert.Equal(t, ctx, updated.ctx)

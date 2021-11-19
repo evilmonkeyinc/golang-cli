@@ -7,6 +7,7 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/evilmonkeyinc/golang-cli/flags"
 	"github.com/evilmonkeyinc/golang-cli/shell"
 	"github.com/stretchr/testify/assert"
 )
@@ -35,7 +36,7 @@ func Test_Recoverer(t *testing.T) {
 		},
 	}
 
-	testRequest := shell.NewRequest([]string{}, []string{}, &shell.DefaultFlagSet{}, nil)
+	testRequest := shell.NewRequest([]string{}, []string{}, &flags.DefaultFlagSet{}, nil)
 
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {

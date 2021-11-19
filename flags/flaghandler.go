@@ -1,4 +1,4 @@
-package shell
+package flags
 
 // The FlagHandlerFunction type is an adapter to allow the use of ordinary functions as shell flag handlers.
 type FlagHandlerFunction func(FlagDefiner)
