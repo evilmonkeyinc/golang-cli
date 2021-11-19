@@ -53,7 +53,7 @@ func main() {
 		return nil
 	})
 
-	if len(os.Args) > 0 {
+	if len(os.Args) > 1 {
 		newShell.Execute(ctx)
 		return
 	}
