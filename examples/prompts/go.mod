@@ -3,7 +3,7 @@ module examples/prompts
 go 1.17
 
 require (
-	github.com/evilmonkeyinc/golang-cli v0.5.0
+	github.com/evilmonkeyinc/golang-cli v0.6.0
 	github.com/manifoldco/promptui v0.9.0
 )
 
