@@ -52,17 +52,17 @@ type FlagValues interface {
 	// Get returns the value of the named flag.
 	Get(name string) interface{}
 	// GetBool returns the value of a named flag as a bool.
-	GetBool(name string) *bool
+	GetBool(name string) (bool, bool)
 	// GetInt returns the value of a named flag as a int64.
-	GetInt(name string) *int64
+	GetInt(name string) (int64, bool)
 	// GetUint returns the value of a named flag as a uint64.
-	GetUint(name string) *uint64
+	GetUint(name string) (uint64, bool)
 	// GetString returns the value of a named flag as a string.
-	GetString(name string) *string
+	GetString(name string) (string, bool)
 	// GetFloat returns the value of a named flag as a float64.
-	GetFloat(name string) *float64
+	GetFloat(name string) (float64, bool)
 	// GetDuration returns the value of a named flag as a time.Duration.
-	GetDuration(name string) *time.Duration
+	GetDuration(name string) (time.Duration, bool)
 	// Set sets the value of the named flag.
 	Set(name, value string) error
 }
@@ -197,73 +197,73 @@ func (flagSet *DefaultFlagSet) Var(value Value, name, usage string) {
 }
 
 // GetBool returns the value of a named flag as a bool.
-func (flagSet *DefaultFlagSet) GetBool(name string) *bool {
+func (flagSet *DefaultFlagSet) GetBool(name string) (bool, bool) {
 	value := flagSet.Get(name)
 	if value == nil {
-		return nil
+		return false, false
 	}
 	if boolValue, ok := value.(bool); ok {
-		return &boolValue
+		return boolValue, true
 	}
-	return nil
+	return false, false
 }
 
 // GetInt returns the value of a named flag as a int64.
-func (flagSet *DefaultFlagSet) GetInt(name string) *int64 {
+func (flagSet *DefaultFlagSet) GetInt(name string) (int64, bool) {
 	value := flagSet.Get(name)
 	if value == nil {
-		return nil
+		return 0, false
 	}
 	if intValue, ok := value.(int64); ok {
-		return &intValue
+		return intValue, true
 	}
-	return nil
+	return 0, false
 }
 
 // GetUint returns the value of a named flag as a uint64.
-func (flagSet *DefaultFlagSet) GetUint(name string) *uint64 {
+func (flagSet *DefaultFlagSet) GetUint(name string) (uint64, bool) {
 	value := flagSet.Get(name)
 	if value == nil {
-		return nil
+		return 0, false
 	}
 	if intValue, ok := value.(uint64); ok {
-		return &intValue
+		return intValue, true
 	}
-	return nil
+	return 0, false
 }
 
 // GetString returns the value of a named flag as a string.
-func (flagSet *DefaultFlagSet) GetString(name string) *string {
+func (flagSet *DefaultFlagSet) GetString(name string) (string, bool) {
 	value := flagSet.Get(name)
 	if value == nil {
-		return nil
+		return "", false
 	}
 	if stringValue, ok := value.(string); ok {
-		return &stringValue
+		return stringValue, true
 	}
-	return nil
+	return "", false
 }
 
 // GetFloat returns the value of a named flag as a float64.
-func (flagSet *DefaultFlagSet) GetFloat(name string) *float64 {
+func (flagSet *DefaultFlagSet) GetFloat(name string) (float64, bool) {
 	value := flagSet.Get(name)
 	if value == nil {
-		return nil
+		return 0, false
 	}
 	if floatValue, ok := value.(float64); ok {
-		return &floatValue
+		return floatValue, true
 	}
-	return nil
+	return 0, false
 }
 
 // GetDuration returns the value of a named flag as a time.Duration.
-func (flagSet *DefaultFlagSet) GetDuration(name string) *time.Duration {
+func (flagSet *DefaultFlagSet) GetDuration(name string) (time.Duration, bool) {
 	value := flagSet.Get(name)
 	if value == nil {
-		return nil
+		return time.Duration(0), false
 	}
 	if durationValue, ok := value.(time.Duration); ok {
-		return &durationValue
+		return durationValue, true
 	}
-	return nil
+	return time.Duration(0), false
 }

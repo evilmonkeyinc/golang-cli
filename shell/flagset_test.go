@@ -374,14 +374,22 @@ func Test_DefaultFlagSet_Get(t *testing.T) {
 		flagSet.Bool("valid", false, "")
 		flagSet.String("invalid", "true", "")
 
-		valid := flagSet.GetBool("valid")
-		assert.Equal(t, false, *valid)
+		value, ok := flagSet.GetBool("valid")
+		assert.True(t, ok)
+		assert.Equal(t, false, value)
 
-		invalid := flagSet.GetBool("invalid")
-		assert.Nil(t, invalid)
+		flagSet.Set("valid", "true")
+		value, ok = flagSet.GetBool("valid")
+		assert.True(t, ok)
+		assert.Equal(t, true, value)
 
-		missing := flagSet.GetBool("missing")
-		assert.Nil(t, missing)
+		value, ok = flagSet.GetBool("invalid")
+		assert.False(t, ok)
+		assert.Equal(t, false, value)
+
+		value, ok = flagSet.GetBool("missing")
+		assert.False(t, ok)
+		assert.Equal(t, false, value)
 	})
 
 	t.Run("GetInt", func(t *testing.T) {
@@ -389,14 +397,17 @@ func Test_DefaultFlagSet_Get(t *testing.T) {
 		flagSet.Int("valid", 10, "")
 		flagSet.String("invalid", "10", "")
 
-		valid := flagSet.GetInt("valid")
-		assert.Equal(t, int64(10), *valid)
+		value, ok := flagSet.GetInt("valid")
+		assert.Equal(t, int64(10), value)
+		assert.True(t, ok)
 
-		invalid := flagSet.GetInt("invalid")
-		assert.Nil(t, invalid)
+		value, ok = flagSet.GetInt("invalid")
+		assert.Equal(t, int64(0), value)
+		assert.False(t, ok)
 
-		missing := flagSet.GetInt("missing")
-		assert.Nil(t, missing)
+		value, ok = flagSet.GetInt("missing")
+		assert.Equal(t, int64(0), value)
+		assert.False(t, ok)
 	})
 
 	t.Run("GetUint", func(t *testing.T) {
@@ -404,14 +415,17 @@ func Test_DefaultFlagSet_Get(t *testing.T) {
 		flagSet.Uint("valid", 10, "")
 		flagSet.String("invalid", "10", "")
 
-		valid := flagSet.GetUint("valid")
-		assert.Equal(t, uint64(10), *valid)
+		value, ok := flagSet.GetUint("valid")
+		assert.Equal(t, uint64(10), value)
+		assert.True(t, ok)
 
-		invalid := flagSet.GetUint("invalid")
-		assert.Nil(t, invalid)
+		value, ok = flagSet.GetUint("invalid")
+		assert.Equal(t, uint64(0), value)
+		assert.False(t, ok)
 
-		missing := flagSet.GetUint("missing")
-		assert.Nil(t, missing)
+		value, ok = flagSet.GetUint("missing")
+		assert.Equal(t, uint64(0), value)
+		assert.False(t, ok)
 	})
 
 	t.Run("GetString", func(t *testing.T) {
@@ -419,14 +433,17 @@ func Test_DefaultFlagSet_Get(t *testing.T) {
 		flagSet.String("valid", "valid", "")
 		flagSet.Bool("invalid", false, "")
 
-		valid := flagSet.GetString("valid")
-		assert.Equal(t, "valid", *valid)
+		value, ok := flagSet.GetString("valid")
+		assert.Equal(t, "valid", value)
+		assert.True(t, ok)
 
-		invalid := flagSet.GetString("invalid")
-		assert.Nil(t, invalid)
+		value, ok = flagSet.GetString("invalid")
+		assert.Equal(t, "", value)
+		assert.False(t, ok)
 
-		missing := flagSet.GetString("missing")
-		assert.Nil(t, missing)
+		value, ok = flagSet.GetString("missing")
+		assert.Equal(t, "", value)
+		assert.False(t, ok)
 	})
 
 	t.Run("GetFloat", func(t *testing.T) {
@@ -434,14 +451,17 @@ func Test_DefaultFlagSet_Get(t *testing.T) {
 		flagSet.Float("valid", 42.1, "")
 		flagSet.String("invalid", "10", "")
 
-		valid := flagSet.GetFloat("valid")
-		assert.Equal(t, float64(42.1), *valid)
+		value, ok := flagSet.GetFloat("valid")
+		assert.Equal(t, float64(42.1), value)
+		assert.True(t, ok)
 
-		invalid := flagSet.GetFloat("invalid")
-		assert.Nil(t, invalid)
+		value, ok = flagSet.GetFloat("invalid")
+		assert.Equal(t, float64(0), value)
+		assert.False(t, ok)
 
-		missing := flagSet.GetFloat("missing")
-		assert.Nil(t, missing)
+		value, ok = flagSet.GetFloat("missing")
+		assert.Equal(t, float64(0), value)
+		assert.False(t, ok)
 	})
 
 	t.Run("GetDuration", func(t *testing.T) {
@@ -449,14 +469,17 @@ func Test_DefaultFlagSet_Get(t *testing.T) {
 		flagSet.Duration("valid", time.Hour, "")
 		flagSet.String("invalid", "10h", "")
 
-		valid := flagSet.GetDuration("valid")
-		assert.Equal(t, time.Hour, *valid)
+		value, ok := flagSet.GetDuration("valid")
+		assert.Equal(t, time.Hour, value)
+		assert.True(t, ok)
 
-		invalid := flagSet.GetDuration("invalid")
-		assert.Nil(t, invalid)
+		value, ok = flagSet.GetDuration("invalid")
+		assert.Equal(t, time.Duration(0), value)
+		assert.False(t, ok)
 
-		missing := flagSet.GetDuration("missing")
-		assert.Nil(t, missing)
+		value, ok = flagSet.GetDuration("missing")
+		assert.Equal(t, time.Duration(0), value)
+		assert.False(t, ok)
 	})
 
 	t.Run("Var", func(t *testing.T) {

@@ -41,8 +41,8 @@ func Test_Command(t *testing.T) {
 					fd.Bool("suffix", false, "")
 				},
 				Function: func(rw shell.ResponseWriter, r *shell.Request) error {
-					includeSuffix := r.FlagValues().GetBool("suffix")
-					if includeSuffix != nil && *includeSuffix {
+					includeSuffix, ok := r.FlagValues().GetBool("suffix")
+					if ok && includeSuffix {
 						return fmt.Errorf("found with suffix")
 					}
 					return fmt.Errorf("found without suffix")

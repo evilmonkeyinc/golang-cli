@@ -24,11 +24,11 @@ func main() {
 		Function: func(rw shell.ResponseWriter, r *shell.Request) error {
 			message := "pong"
 
-			if suffix := r.FlagValues().GetString("suffix"); suffix != nil {
-				message = fmt.Sprintf("%s%s", message, *suffix)
+			if suffix, ok := r.FlagValues().GetString("suffix"); ok {
+				message = fmt.Sprintf("%s%s", message, suffix)
 			}
 
-			if toUpper := r.FlagValues().GetBool("toUpper"); toUpper != nil && *toUpper {
+			if toUpper, ok := r.FlagValues().GetBool("toUpper"); ok && toUpper {
 				message = strings.ToUpper(message)
 			}
 

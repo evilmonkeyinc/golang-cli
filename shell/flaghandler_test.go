@@ -18,6 +18,6 @@ func Test_FlagHandlerFunction(t *testing.T) {
 	fd := &DefaultFlagSet{}
 	handler.Define(fd)
 
-	boolVal := fd.GetBool("bool")
-	assert.True(t, *boolVal)
+	boolVal, _ := fd.GetBool("bool")
+	assert.True(t, boolVal)
 }
