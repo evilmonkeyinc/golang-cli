@@ -24,5 +24,5 @@ func (flag *StringArrayFlag) Set(value string) error {
 
 // Get returns the string array value.
 func (flag *StringArrayFlag) Get() interface{} {
-	return *flag
+	return []string(*flag)
 }

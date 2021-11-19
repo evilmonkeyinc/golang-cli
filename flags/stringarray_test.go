@@ -69,8 +69,8 @@ func Test_StringArrayFlag(t *testing.T) {
 			flagSet.Var(value, "array", "an array")
 			flagSet.Parse(test.input)
 
-			assert.EqualValues(t, test.expected.array, value.Get())
-			assert.EqualValues(t, test.expected.str, value.String())
+			assert.Equal(t, test.expected.array, value.Get())
+			assert.Equal(t, test.expected.str, value.String())
 		})
 	}
 }

@@ -3,6 +3,7 @@ package flags
 import (
 	"bytes"
 	"flag"
+	"strings"
 	"time"
 )
 
@@ -37,6 +38,8 @@ type FlagDefiner interface {
 	Uint(name string, defaultValue uint64, usage string)
 	// String defines a string flag with specified name, default value, and usage string.
 	String(name string, defaultValue string, usage string)
+	// StringArray defines a string array flag with specified name, default value, and usage string.
+	StringArray(name string, defaultValue []string, usage string)
 	// Float defines a float64 flag with specified name, default value, and usage string.
 	Float(name string, defaultValue float64, usage string)
 	// Duration defines a time.Duration flag with specified name, default value, and usage string.
@@ -59,6 +62,8 @@ type FlagValues interface {
 	GetUint(name string) (uint64, bool)
 	// GetString returns the value of a named flag as a string.
 	GetString(name string) (string, bool)
+	// GetStringArray returns the value of a named flag as a string array.
+	GetStringArray(name string) ([]string, bool)
 	// GetFloat returns the value of a named flag as a float64.
 	GetFloat(name string) (float64, bool)
 	// GetDuration returns the value of a named flag as a time.Duration.
@@ -176,6 +181,17 @@ func (flagSet *DefaultFlagSet) String(name string, defaultValue string, usage st
 	flagSet.set.String(name, defaultValue, usage)
 }
 
+// StringArray defines a string array flag with specified name, default value, and usage string.
+func (flagSet *DefaultFlagSet) StringArray(name string, defaultValue []string, usage string) {
+	flagSet.setup()
+
+	value := &StringArrayFlag{}
+	if len(defaultValue) > 0 {
+		value.Set(strings.Join(defaultValue, ","))
+	}
+	flagSet.Var(value, name, usage)
+}
+
 // Float defines a float64 flag with specified name, default value, and usage string.
 func (flagSet *DefaultFlagSet) Float(name string, defaultValue float64, usage string) {
 	flagSet.setup()
@@ -242,6 +258,18 @@ func (flagSet *DefaultFlagSet) GetString(name string) (string, bool) {
 		return stringValue, true
 	}
 	return "", false
+}
+
+// GetStringArray returns the value of a named flag as a string array.
+func (flagSet *DefaultFlagSet) GetStringArray(name string) ([]string, bool) {
+	value := flagSet.Get(name)
+	if value == nil {
+		return nil, false
+	}
+	if arrayValue, ok := value.([]string); ok {
+		return arrayValue, true
+	}
+	return nil, false
 }
 
 // GetFloat returns the value of a named flag as a float64.

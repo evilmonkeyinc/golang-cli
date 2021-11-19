@@ -446,6 +446,24 @@ func Test_DefaultFlagSet_Get(t *testing.T) {
 		assert.False(t, ok)
 	})
 
+	t.Run("GetStringArray", func(t *testing.T) {
+		flagSet := &DefaultFlagSet{}
+		flagSet.StringArray("valid", []string{"one", "two", "three"}, "")
+		flagSet.Bool("invalid", false, "")
+
+		value, ok := flagSet.GetStringArray("valid")
+		assert.Equal(t, []string{"one", "two", "three"}, value)
+		assert.True(t, ok)
+
+		value, ok = flagSet.GetStringArray("invalid")
+		assert.Nil(t, value)
+		assert.False(t, ok)
+
+		value, ok = flagSet.GetStringArray("missing")
+		assert.Nil(t, value)
+		assert.False(t, ok)
+	})
+
 	t.Run("GetFloat", func(t *testing.T) {
 		flagSet := &DefaultFlagSet{}
 		flagSet.Float("valid", 42.1, "")
