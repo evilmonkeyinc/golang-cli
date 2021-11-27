@@ -119,7 +119,7 @@ func Test_Shell(t *testing.T) {
 		assert.NotNil(t, testRouter.flags)
 
 		actual.execute(context.Background(), []string{"-found", "-missing"})
-		assert.Equal(t, "flag provided but not defined: -missing\n", errWriter.String())
+		assert.Equal(t, "flagset parse failed flag provided but not defined: -missing\n", errWriter.String())
 	})
 
 }

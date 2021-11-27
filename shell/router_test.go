@@ -478,7 +478,7 @@ func Test_Router_Flags(t *testing.T) {
 			expected: expected{
 				err:        nil,
 				parsed:     map[string]interface{}{},
-				parseError: "flag provided but not defined: -two\n",
+				parseError: "flagset parse failed flag provided but not defined: -two\n",
 			},
 		},
 		{

@@ -2,14 +2,12 @@ package flags
 
 import (
 	"bytes"
+	goerrors "errors"
 	"flag"
 	"strings"
 	"time"
-)
 
-var (
-	// ErrHelp is the error returned if the -help or -h flag is invoked but no such flag is defined.
-	ErrHelp error = flag.ErrHelp
+	"github.com/evilmonkeyinc/golang-cli/errors"
 )
 
 // A FlagSet represents a set of defined flags
@@ -132,8 +130,13 @@ func (flagSet *DefaultFlagSet) SubFlagSet(name string) FlagSet {
 // The return value will be ErrHelp if -help was set but not defined.
 func (flagSet *DefaultFlagSet) Parse(args []string) ([]string, error) {
 	flagSet.setup()
-	result := flagSet.set.Parse(args)
-	return flagSet.set.Args(), result
+	if err := flagSet.set.Parse(args); err != nil {
+		if goerrors.Is(err, flag.ErrHelp) {
+			return flagSet.set.Args(), errors.HelpRequested("flags")
+		}
+		return flagSet.set.Args(), errors.FlagsetParseFailed(err.Error())
+	}
+	return flagSet.set.Args(), nil
 }
 
 // Parsed returns true if Parse has been called.

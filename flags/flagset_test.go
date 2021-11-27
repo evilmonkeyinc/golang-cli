@@ -7,6 +7,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/evilmonkeyinc/golang-cli/errors"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -240,13 +241,19 @@ func Test_DefaultFlagSet_ParseArgs(t *testing.T) {
 			name:          "short help",
 			input:         []string{"-h"},
 			expected:      []string{},
-			expectedError: ErrHelp,
+			expectedError: errors.HelpRequested("flags"),
 		},
 		{
 			name:          "long help",
 			input:         []string{"--help"},
 			expected:      []string{},
-			expectedError: ErrHelp,
+			expectedError: errors.HelpRequested("flags"),
+		},
+		{
+			name:          "unknown flag",
+			input:         []string{"--unknown"},
+			expected:      []string{},
+			expectedError: errors.FlagsetParseFailed("flag provided but not defined: -unknown"),
 		},
 	}
 
