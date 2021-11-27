@@ -303,7 +303,7 @@ func Test_DefaultFlagSet_Set(t *testing.T) {
 				fn:    func(fd FlagDefiner) {},
 			},
 			expected: expected{
-				err:   fmt.Errorf("no such flag -missing"),
+				err:   errors.FlagsetSetFailed("no such flag -missing"),
 				value: nil,
 			},
 		},
@@ -331,7 +331,7 @@ func Test_DefaultFlagSet_Set(t *testing.T) {
 				},
 			},
 			expected: expected{
-				err:   fmt.Errorf("parse error"),
+				err:   errors.FlagsetSetFailed("parse error"),
 				value: false,
 			},
 		},
@@ -357,7 +357,7 @@ func Test_DefaultFlagSet_Set(t *testing.T) {
 			test.input.fn(flagSet)
 
 			actualErr := flagSet.Set(test.input.name, test.input.value)
-			assert.Equal(t, test.expected.err, actualErr)
+			assert.EqualValues(t, test.expected.err, actualErr)
 
 			actualVal := flagSet.Get(test.input.name)
 			assert.Equal(t, test.expected.value, actualVal)

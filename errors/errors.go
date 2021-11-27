@@ -9,6 +9,7 @@ var (
 	errCommandNotFound    error = errors.New("command not found")
 	errDuplicateCommand   error = errors.New("command has already been declared")
 	errFlagsetParseFailed error = errors.New("flagset parse failed")
+	errFlagsetSetFailed   error = errors.New("flagset set failed")
 	errHelpRequested      error = errors.New("help requested")
 	errOptionIsInvalid    error = errors.New("option paramaters are undefined or invalid")
 	errOptionIsSet        error = errors.New("option has already been used or shell has already been initialized")
@@ -27,6 +28,11 @@ func DuplicateCommand(command string) error {
 // FlagsetParseFailed returns a flagset parse failed error
 func FlagsetParseFailed(reason string) error {
 	return fmt.Errorf("%w %s", errFlagsetParseFailed, reason)
+}
+
+// FlagsetSetFailed returns a flagset set failed error
+func FlagsetSetFailed(reason string) error {
+	return fmt.Errorf("%w %s", errFlagsetSetFailed, reason)
 }
 
 // HelpRequested returns a help requested error

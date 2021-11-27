@@ -106,6 +106,38 @@ func Test_FlagsetParseFailed(t *testing.T) {
 		})
 	}
 }
+func Test_FlagsetSetFailed(t *testing.T) {
+
+	tests := []struct {
+		name     string
+		input    string
+		expected string
+	}{
+		{
+			name:     "standard",
+			input:    "PING",
+			expected: "flagset set failed PING",
+		},
+		{
+			name:     "empty",
+			input:    "",
+			expected: "flagset set failed ",
+		},
+		{
+			name:     "lowercase",
+			input:    "ping",
+			expected: "flagset set failed ping",
+		},
+	}
+
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			actual := FlagsetSetFailed(test.input)
+			assert.Equal(t, test.expected, actual.Error())
+			assert.True(t, errors.Is(actual, errFlagsetSetFailed))
+		})
+	}
+}
 
 func Test_HelpRequested(t *testing.T) {
 
