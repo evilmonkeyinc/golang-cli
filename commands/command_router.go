@@ -51,6 +51,6 @@ func (router *CommandRouter) GetDescription() string {
 }
 
 // GetUsage returns an example of the command used to execute the command.
-func (command *CommandRouter) GetUsage() string {
-	return command.Usage
+func (router *CommandRouter) GetUsage() string {
+	return router.Usage
 }
