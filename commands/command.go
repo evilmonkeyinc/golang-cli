@@ -14,6 +14,8 @@ type Command struct {
 	Summary string
 	// A long description of the command.
 	Description string
+	// An example of the command used to execute the command.
+	Usage string
 	// An optional function to include flag definition to the command.
 	Flags flags.FlagHandlerFunction
 	// The shell handler function to be executed for the command.
@@ -33,6 +35,11 @@ func (command *Command) GetSummary() string {
 // GetDescription returns the long description of the command handler.
 func (command *Command) GetDescription() string {
 	return command.Description
+}
+
+// GetUsage returns an example of the command used to execute the command.
+func (command *Command) GetUsage() string {
+	return command.Usage
 }
 
 // Define allows the function to define command-line
