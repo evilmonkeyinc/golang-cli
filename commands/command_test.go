@@ -10,7 +10,23 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
+// Validate the Command struct matches the CommandHandler interface
+var _ CommandHandler = &Command{}
+
 func Test_Command(t *testing.T) {
+
+	t.Run("Getters", func(t *testing.T) {
+		command := &Command{
+			Name:        "Name",
+			Summary:     "The command summary",
+			Description: "The command description",
+			Usage:       "name <arg1>",
+		}
+		assert.Equal(t, "Name", command.GetName())
+		assert.Equal(t, "The command summary", command.GetSummary())
+		assert.Equal(t, "The command description", command.GetDescription())
+		assert.Equal(t, "name <arg1>", command.GetUsage())
+	})
 
 	tests := []struct {
 		name     string

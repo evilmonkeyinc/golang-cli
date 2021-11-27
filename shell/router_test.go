@@ -11,8 +11,8 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-// Validate the router struct matches the Router interface
-var _ Router = &router{}
+// Validate the StandardRouter struct matches the Router interface
+var _ Router = &StandardRouter{}
 
 func Test_Router(t *testing.T) {
 
@@ -82,7 +82,7 @@ func Test_Router(t *testing.T) {
 	})
 
 	t.Run("Use", func(t *testing.T) {
-		router := newRouter()
+		router := &StandardRouter{}
 
 		middleware := MiddlewareFunction(func(next Handler) Handler {
 			return next
@@ -94,7 +94,7 @@ func Test_Router(t *testing.T) {
 	})
 
 	t.Run("NotFound", func(t *testing.T) {
-		router := newRouter()
+		router := &StandardRouter{}
 		router.NotFound(HandlerFunction(func(ResponseWriter, *Request) error {
 			return fmt.Errorf("not found")
 		}))
@@ -149,7 +149,7 @@ func Test_Router_Execute(t *testing.T) {
 
 func Test_Router_Match(t *testing.T) {
 
-	router := newRouter()
+	router := &StandardRouter{}
 	router.Use(MiddlewareFunction(func(next Handler) Handler {
 		return HandlerFunction(func(rw ResponseWriter, r *Request) error {
 			err := next.Execute(rw, r)
@@ -271,7 +271,7 @@ func Test_Router_Match(t *testing.T) {
 }
 
 func Test_Router_Group(t *testing.T) {
-	router := newRouter()
+	router := &StandardRouter{}
 	actual := router.Group(func(r Router) {
 		r.HandleFunction("found", func(ResponseWriter, *Request) error {
 			return fmt.Errorf("found")
@@ -290,7 +290,7 @@ func Test_Router_Group(t *testing.T) {
 
 func Test_Router_Route(t *testing.T) {
 	t.Run("set route", func(t *testing.T) {
-		router := newRouter()
+		router := &StandardRouter{}
 		subRouter := router.Route("route", func(r Router) {
 			r.HandleFunction("found", func(ResponseWriter, *Request) error {
 				return fmt.Errorf("found")
@@ -311,7 +311,7 @@ func Test_Router_Route(t *testing.T) {
 
 	t.Run("duplicate panic", func(t *testing.T) {
 		testPanic(t, func() {
-			router := newRouter()
+			router := &StandardRouter{}
 			router.Route("route", func(r Router) {
 				r.HandleFunction("first", func(ResponseWriter, *Request) error {
 					return fmt.Errorf("found")
@@ -325,16 +325,52 @@ func Test_Router_Route(t *testing.T) {
 		}, errors.DuplicateCommand("route").Error())
 	})
 }
+func Test_Router_Mount(t *testing.T) {
+	t.Run("set route", func(t *testing.T) {
+
+		subRouter := &StandardRouter{}
+		subRouter.HandleFunction("found", func(ResponseWriter, *Request) error {
+			return fmt.Errorf("found")
+		})
+
+		router := &StandardRouter{}
+		router.Mount("route", subRouter)
+		assert.Contains(t, router.handlers, "route")
+
+		request := NewRequest([]string{}, []string{"route", "found"}, &flags.DefaultFlagSet{}, nil)
+		parent := router.Execute(nil, request)
+
+		request = NewRequest([]string{}, []string{"found"}, &flags.DefaultFlagSet{}, nil)
+		direct := subRouter.Execute(nil, request)
+
+		assert.Equal(t, fmt.Errorf("found"), parent)
+		assert.Equal(t, fmt.Errorf("found"), direct)
+	})
+
+	t.Run("duplicate panic", func(t *testing.T) {
+		testPanic(t, func() {
+
+			subRouter := &StandardRouter{}
+			subRouter.HandleFunction("first", func(ResponseWriter, *Request) error {
+				return fmt.Errorf("found")
+			})
+
+			router := &StandardRouter{}
+			router.Mount("route", subRouter)
+			router.Mount("route", subRouter)
+		}, errors.DuplicateCommand("route").Error())
+	})
+}
 
 func Test_Router_Handle(t *testing.T) {
 	t.Run("first", func(t *testing.T) {
-		router := newRouter()
+		router := &StandardRouter{}
 		router.Handle("found", &testHandler{})
 		assert.Contains(t, router.handlers, "found")
 	})
 	t.Run("duplicate", func(t *testing.T) {
 		testPanic(t, func() {
-			router := newRouter()
+			router := &StandardRouter{}
 			router.Handle("found", &testHandler{})
 			router.Handle("found", &testHandler{})
 		}, errors.DuplicateCommand("found").Error())
@@ -343,7 +379,7 @@ func Test_Router_Handle(t *testing.T) {
 
 func Test_Router_HandleFunction(t *testing.T) {
 	t.Run("first", func(t *testing.T) {
-		router := newRouter()
+		router := &StandardRouter{}
 		router.HandleFunction("found", HandlerFunction(func(ResponseWriter, *Request) error {
 			return nil
 		}))
@@ -351,7 +387,7 @@ func Test_Router_HandleFunction(t *testing.T) {
 	})
 	t.Run("duplicate", func(t *testing.T) {
 		testPanic(t, func() {
-			router := newRouter()
+			router := &StandardRouter{}
 			router.HandleFunction("found", HandlerFunction(func(ResponseWriter, *Request) error {
 				return nil
 			}))
@@ -572,7 +608,7 @@ func Test_Router_Flags(t *testing.T) {
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
 
-			testRouter := newRouter()
+			testRouter := &StandardRouter{}
 			testRouter.Handle("go", &testHandlerWithFlags{
 				t:             t,
 				expectedFlags: test.expected.parsed,

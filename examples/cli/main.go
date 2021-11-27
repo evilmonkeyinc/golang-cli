@@ -20,7 +20,7 @@ func main() {
 		Summary:     "Simple ping pong command",
 		Description: "Simple command that will output the word pong",
 		Flags: func(fd flags.FlagDefiner) {
-			fd.String("suffix", "", "")
+			fd.String("suffix", "", "add a suffix to the response")
 		},
 		Function: func(rw shell.ResponseWriter, r *shell.Request) error {
 			message := "pong"
@@ -40,13 +40,40 @@ func main() {
 
 	newShell := new(shell.Shell)
 	newShell.Flags(flags.FlagHandlerFunction(func(fd flags.FlagDefiner) {
-		fd.Bool("toUpper", false, "")
+		fd.Bool("toUpper", false, "make the response uppercase")
 	}))
 	newShell.Use(middleware.Recoverer())
 	newShell.Handle("ping", pingCommand)
-	newShell.Route("sub", func(r shell.Router) {
-		r.Handle("ping", pingCommand)
-	})
+	newShell.Handle("users", commands.NewCommandRouter("Users", "Commands for user management", "A series of commands to aid in user management", "users add|delete|list", func(r shell.Router) {
+		r.Handle("list", &commands.Command{
+			Name:        "List",
+			Summary:     "List users",
+			Description: "Will list all valid users",
+			Usage:       "list",
+			Function: func(rw shell.ResponseWriter, r *shell.Request) error {
+				return fmt.Errorf("list function called")
+			},
+		})
+		r.Handle("add", &commands.Command{
+			Name:        "Add",
+			Summary:     "Add user",
+			Description: "Will add a new user",
+			Usage:       "add email@example.com",
+			Function: func(rw shell.ResponseWriter, r *shell.Request) error {
+				return fmt.Errorf("add function called")
+			},
+		})
+		r.Handle("delete", &commands.Command{
+			Name:        "Delete",
+			Summary:     "Delete user",
+			Description: "Will delete an existing user",
+			Usage:       "delete email@example.com",
+			Function: func(rw shell.ResponseWriter, r *shell.Request) error {
+				return fmt.Errorf("delete function called")
+			},
+		})
+	}))
+
 	newShell.HandleFunction("secret", func(rw shell.ResponseWriter, r *shell.Request) error {
 		panic("this command should not be called.")
 	})

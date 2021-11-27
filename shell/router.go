@@ -21,11 +21,17 @@ type Router interface {
 	Handle(string, Handler)
 	// HandleFunction adds a shell handler function to the router stack, along the specified command path.
 	HandleFunction(string, HandlerFunction)
-	// Route adds a new sub-router to the router stack, along the specified command path.
-	NotFound(Handler)
-	// Use appends one or more middleware onto the router stack.
-	Route(string, func(r Router)) Router
 	// NotFound defines a shell handler that will respond if a command path cannot be evaluated.
+	NotFound(Handler)
+	// Route adds a new sub-router to the router stack, along the specified command path.
+	Route(string, func(r Router)) Router
+	// Mount adds the specified router to the router stack, along the specified command path.
+	//
+	// A mounted router will not inherit helper functions, such as the not found handler,
+	// from the parent router in the same way a sub-router created by the Route() does, you must
+	// set these manually.
+	Mount(string, Router)
+	// Use appends one or more middleware onto the router stack.
 	Use(...Middleware)
 }
 
@@ -41,8 +47,8 @@ type Routes interface {
 }
 
 // newRouter will return a new empty router
-func newRouter() *router {
-	return &router{
+func newRouter() *StandardRouter {
+	return &StandardRouter{
 		children:        []Router{},
 		handlers:        map[string]Handler{},
 		middleware:      []Middleware{},
@@ -52,8 +58,8 @@ func newRouter() *router {
 }
 
 // childRouter will create a new sub router as an inline group router
-func childRouter(rtr *router) *router {
-	return &router{
+func childRouter(rtr *StandardRouter) *StandardRouter {
+	return &StandardRouter{
 		children:        []Router{},
 		handlers:        map[string]Handler{},
 		middleware:      []Middleware{},
@@ -63,8 +69,8 @@ func childRouter(rtr *router) *router {
 }
 
 // subRouter will create a new sub router as a sub command router
-func subRouter(rtr *router) *router {
-	return &router{
+func subRouter(rtr *StandardRouter) *StandardRouter {
+	return &StandardRouter{
 		children:        []Router{},
 		handlers:        map[string]Handler{},
 		middleware:      []Middleware{},
@@ -73,7 +79,8 @@ func subRouter(rtr *router) *router {
 	}
 }
 
-type router struct {
+// StandardRouter represents the standard implementation of the Router interface.
+type StandardRouter struct {
 	children        []Router
 	flags           flags.FlagHandler
 	handlers        map[string]Handler
@@ -82,7 +89,14 @@ type router struct {
 	parent          Router
 }
 
-func (rtr *router) Execute(writer ResponseWriter, request *Request) error {
+func (rtr *StandardRouter) setup() {
+	if rtr.handlers == nil {
+		rtr.handlers = make(map[string]Handler)
+	}
+}
+
+// Execute is used to execute the shell handler.
+func (rtr *StandardRouter) Execute(writer ResponseWriter, request *Request) error {
 	args := request.Args
 	flagSet := request.FlagSet
 
@@ -113,25 +127,26 @@ func (rtr *router) Execute(writer ResponseWriter, request *Request) error {
 	return nil
 }
 
-func (rtr *router) Flags(fn flags.FlagHandler) {
-	rtr.flags = fn
-}
-
-func (rtr *router) Define(fd flags.FlagDefiner) {
+// Define allows the function to define command-line flags.
+func (rtr *StandardRouter) Define(fd flags.FlagDefiner) {
 	if rtr.flags != nil {
 		rtr.flags.Define(fd)
 	}
 }
 
-func (rtr *router) Routes() map[string]Handler {
+// Routes returns the linked shell handlers.
+func (rtr *StandardRouter) Routes() map[string]Handler {
 	return rtr.handlers
 }
 
-func (rtr *router) Middlewares() []Middleware {
+// Middlewares returns the list of middlewares in use by the router.
+func (rtr *StandardRouter) Middlewares() []Middleware {
 	return rtr.middleware
 }
 
-func (rtr *router) Match(args []string) (Handler, bool) {
+// Match evaluates the routing tree for a handler that matches the supplied arguments
+// and returns the handler, wrapped in the appropriate middleware handler functions
+func (rtr *StandardRouter) Match(args []string) (Handler, bool) {
 	if len(args) == 0 {
 		return nil, false
 	}
@@ -158,18 +173,46 @@ func (rtr *router) Match(args []string) (Handler, bool) {
 	return nil, false
 }
 
-func (rtr *router) Use(middleware ...Middleware) {
-	rtr.middleware = append(rtr.middleware, middleware...)
+// Flags adds a FlagHandler that will add flags to the request FlagSet before
+// it attempts to match a command.
+func (rtr *StandardRouter) Flags(fn flags.FlagHandler) {
+	rtr.flags = fn
 }
 
-func (rtr *router) Group(setup func(r Router)) Router {
+// Group adds a new inline-router to the router stack.
+func (rtr *StandardRouter) Group(setup func(r Router)) Router {
 	subRouter := childRouter(rtr)
 	setup(subRouter)
 	rtr.children = append(rtr.children, subRouter)
 	return subRouter
 }
 
-func (rtr *router) Route(command string, setup func(r Router)) Router {
+// Handle adds a shell handler to the router stack, along the specified command path.
+func (rtr *StandardRouter) Handle(command string, handler Handler) {
+	rtr.setup()
+	if _, exists := rtr.Match([]string{command}); exists {
+		panic(errors.DuplicateCommand(command))
+	}
+	rtr.handlers[command] = handler
+}
+
+// HandleFunction adds a shell handler function to the router stack, along the specified command path.
+func (rtr *StandardRouter) HandleFunction(command string, handerFunction HandlerFunction) {
+	rtr.setup()
+	if _, exists := rtr.Match([]string{command}); exists {
+		panic(errors.DuplicateCommand(command))
+	}
+	rtr.handlers[command] = handerFunction
+}
+
+// NotFound defines a shell handler that will respond if a command path cannot be evaluated.
+func (rtr *StandardRouter) NotFound(handler Handler) {
+	rtr.notFoundHandler = handler
+}
+
+// Route adds a new sub-router to the router stack, along the specified command path.
+func (rtr *StandardRouter) Route(command string, setup func(r Router)) Router {
+	rtr.setup()
 	if _, exists := rtr.Match([]string{command}); exists {
 		panic(errors.DuplicateCommand(command))
 	}
@@ -180,20 +223,21 @@ func (rtr *router) Route(command string, setup func(r Router)) Router {
 	return subRouter
 }
 
-func (rtr *router) Handle(command string, handler Handler) {
+// Mount adds the specified router to the router stack, along the specified command path.
+//
+// A mounted router will not inherit helper functions, such as the not found handler,
+// from the parent router in the same way a sub-router created by the Route() does, you must
+// set these manually.
+func (rtr *StandardRouter) Mount(command string, router Router) {
+	rtr.setup()
 	if _, exists := rtr.Match([]string{command}); exists {
 		panic(errors.DuplicateCommand(command))
 	}
-	rtr.handlers[command] = handler
+
+	rtr.handlers[command] = router
 }
 
-func (rtr *router) HandleFunction(command string, handerFunction HandlerFunction) {
-	if _, exists := rtr.Match([]string{command}); exists {
-		panic(errors.DuplicateCommand(command))
-	}
-	rtr.handlers[command] = handerFunction
-}
-
-func (rtr *router) NotFound(handler Handler) {
-	rtr.notFoundHandler = handler
+// Use appends one or more middleware onto the router stack.
+func (rtr *StandardRouter) Use(middleware ...Middleware) {
+	rtr.middleware = append(rtr.middleware, middleware...)
 }

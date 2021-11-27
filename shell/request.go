@@ -23,7 +23,7 @@ func NewRequestWithContext(ctx context.Context, path, args []string, flagSet fla
 	}
 }
 
-// A Request represents a the request sent by the shell and processed by the router and handlers.
+// A Request represents the request sent by the shell and processed by the router and handlers.
 type Request struct {
 	ctx context.Context
 
