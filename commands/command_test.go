@@ -10,7 +10,20 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
+var _ CommandHandler = &Command{}
+
 func Test_Command(t *testing.T) {
+
+	t.Run("Getters", func(t *testing.T) {
+		command := &Command{
+			Name:        "Name",
+			Summary:     "The command summary",
+			Description: "The command description",
+		}
+		assert.Equal(t, "Name", command.GetName())
+		assert.Equal(t, "The command summary", command.GetSummary())
+		assert.Equal(t, "The command description", command.GetDescription())
+	})
 
 	tests := []struct {
 		name     string

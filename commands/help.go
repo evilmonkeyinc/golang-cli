@@ -21,9 +21,9 @@ func (command *HelpCommand) Execute(writer shell.ResponseWriter, request *shell.
 		command.Usage = request.Path[len(request.Path)-1]
 	}
 
-	commands := make(map[string]*Command)
+	commands := make(map[string]CommandHandler)
 	for cmdName, handler := range routes.Routes() {
-		if cmd, ok := handler.(*Command); ok {
+		if cmd, ok := handler.(CommandHandler); ok {
 			commands[cmdName] = cmd
 		}
 	}
@@ -32,20 +32,33 @@ func (command *HelpCommand) Execute(writer shell.ResponseWriter, request *shell.
 	if len(args) > 0 {
 		cmdName := args[0]
 		if cmd, ok := commands[cmdName]; ok {
-			fmt.Fprintf(writer, "\n%s\n", cmdName)
-			fmt.Fprintf(writer, "  Usage: %s\n", cmd.Name)
-			fmt.Fprintf(writer, "  %s\n\n", cmd.Summary)
-			fmt.Fprintf(writer, "%s\n\n", cmd.Description)
+			cmd.Define(request.FlagSet)
+			fmt.Fprintf(writer, "\n%s\n", cmd.GetName())
+			fmt.Fprintf(writer, "  Usage: %s\n", cmdName)
+			fmt.Fprintf(writer, "  %s\n\n", cmd.GetSummary())
+			fmt.Fprintf(writer, "%s\n\n", cmd.GetDescription())
+
+			if usage := request.FlagSet.DefaultUsage(); usage != "" {
+				fmt.Fprintln(writer, "\nUsage")
+				fmt.Fprintln(writer, usage)
+			}
+
 			return nil
 		}
 	}
 
 	fmt.Fprintf(writer, "\n%s: %s\n", command.Usage, fmt.Sprintf("%s or %s <command-name>", command.Usage, command.Usage))
-	fmt.Fprintln(writer, "\nAvailable commands")
+	fmt.Fprintln(writer, "\nCommands")
 	fmt.Fprintln(writer, "------------------")
 	for cmdName, cmd := range commands {
-		fmt.Fprintf(writer, "%12s:\t%s\n", cmdName, cmd.Summary)
+		fmt.Fprintf(writer, "%12s:\t%s\n", cmdName, cmd.GetSummary())
 	}
+
+	if usage := request.FlagSet.DefaultUsage(); usage != "" {
+		fmt.Fprintln(writer, "\nUsage")
+		fmt.Fprintln(writer, usage)
+	}
+
 	fmt.Fprintf(writer, "\nUse \"%s <command-name>\" for detail about the specified command\n", command.Usage)
 
 	return nil

@@ -26,6 +26,10 @@ type FlagSet interface {
 	Parse(args []string) ([]string, error)
 	// Parsed returns true if Parse has been called.
 	Parsed() bool
+
+	// DefaultUsage returns a usage message showing the default
+	// settings of all defined command-line flags.
+	DefaultUsage() string
 }
 
 // FlagDefiner allows you to define the flags managed by the flag set
@@ -294,4 +298,17 @@ func (flagSet *DefaultFlagSet) GetDuration(name string) (time.Duration, bool) {
 		return durationValue, true
 	}
 	return time.Duration(0), false
+}
+
+// DefaultUsage returns a usage message showing the default
+// settings of all defined command-line flags.
+func (flagSet *DefaultFlagSet) DefaultUsage() string {
+	buffer := &bytes.Buffer{}
+
+	existing := flagSet.set.Output()
+	flagSet.set.SetOutput(buffer)
+	flagSet.set.PrintDefaults()
+	flagSet.set.SetOutput(existing)
+
+	return buffer.String()
 }

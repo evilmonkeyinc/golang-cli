@@ -20,7 +20,7 @@ func main() {
 		Summary:     "Simple ping pong command",
 		Description: "Simple command that will output the word pong",
 		Flags: func(fd flags.FlagDefiner) {
-			fd.String("suffix", "", "")
+			fd.String("suffix", "", "add a suffix to the response")
 		},
 		Function: func(rw shell.ResponseWriter, r *shell.Request) error {
 			message := "pong"
@@ -40,7 +40,7 @@ func main() {
 
 	newShell := new(shell.Shell)
 	newShell.Flags(flags.FlagHandlerFunction(func(fd flags.FlagDefiner) {
-		fd.Bool("toUpper", false, "")
+		fd.Bool("toUpper", false, "make the response uppercase")
 	}))
 	newShell.Use(middleware.Recoverer())
 	newShell.Handle("ping", pingCommand)

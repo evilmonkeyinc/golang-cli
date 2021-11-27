@@ -8,6 +8,7 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/evilmonkeyinc/golang-cli/flags"
 	"github.com/evilmonkeyinc/golang-cli/middleware"
 	"github.com/evilmonkeyinc/golang-cli/shell"
 	"github.com/stretchr/testify/assert"
@@ -35,9 +36,14 @@ func Test_HelpCommand(t *testing.T) {
 				"",
 				"help: help or help <command-name>",
 				"",
-				"Available commands",
+				"Commands",
 				"------------------",
-				"        ping:	Simple ping pong command",
+				"        ping:\tSimple ping pong command",
+				"",
+				"Usage",
+				"  -toUpper",
+				"    \tstate if the response should be uppercase",
+				"",
 				"",
 				"Use \"help <command-name>\" for detail about the specified command",
 			},
@@ -50,9 +56,14 @@ func Test_HelpCommand(t *testing.T) {
 				"",
 				"help: help or help <command-name>",
 				"",
-				"Available commands",
+				"Commands",
 				"------------------",
 				"        ping:	Simple ping pong command",
+				"",
+				"Usage",
+				"  -toUpper",
+				"    \tstate if the response should be uppercase",
+				"",
 				"",
 				"Use \"help <command-name>\" for detail about the specified command",
 			},
@@ -63,11 +74,18 @@ func Test_HelpCommand(t *testing.T) {
 			usage: "help",
 			expected: []string{
 				"",
-				"ping",
-				"  Usage: Ping",
+				"Ping",
+				"  Usage: ping",
 				"  Simple ping pong command",
 				"",
 				"Simple command that will output the word pong",
+				"",
+				"",
+				"Usage",
+				"  -suffix string",
+				"    \ta suffix for the function response",
+				"  -toUpper",
+				"    \tstate if the response should be uppercase",
 				"",
 			},
 		},
@@ -79,13 +97,26 @@ func Test_HelpCommand(t *testing.T) {
 
 			newShell := new(shell.Shell)
 			newShell.Options(shell.OptionOutputWriter(testWriter))
+			newShell.Flags(flags.FlagHandlerFunction(func(fd flags.FlagDefiner) {
+				fd.Bool("toUpper", false, "state if the response should be uppercase")
+			}))
 			newShell.Use(middleware.Recoverer())
 			newShell.Handle("ping", &Command{
 				Name:        "Ping",
 				Summary:     "Simple ping pong command",
 				Description: "Simple command that will output the word pong",
+				Flags: func(fd flags.FlagDefiner) {
+					fd.String("suffix", "", "a suffix for the function response")
+				},
 				Function: func(rw shell.ResponseWriter, r *shell.Request) error {
-					fmt.Fprintln(rw, "pong")
+					suffix, _ := r.FlagSet.GetString("suffix")
+
+					response := fmt.Sprintf("pong%s", suffix)
+					if toUpper, _ := r.FlagSet.GetBool("toUpper"); toUpper {
+						response = strings.ToUpper(response)
+					}
+
+					fmt.Fprintln(rw, response)
 					return nil
 				},
 			})

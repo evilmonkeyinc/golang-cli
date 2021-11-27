@@ -1,6 +1,7 @@
 package flags
 
 import (
+	"bytes"
 	"flag"
 	"fmt"
 	"testing"
@@ -523,4 +524,19 @@ func Test_DefaultFlagSet_Get(t *testing.T) {
 		actual := flagSet.Get("custom")
 		assert.Equal(t, "value", actual)
 	})
+}
+
+func Test_DefaultFlagSet_PrintDefaults(t *testing.T) {
+
+	original := &bytes.Buffer{}
+
+	flagSet := flag.NewFlagSet("", flag.ContinueOnError)
+	flagSet.SetOutput(original)
+	defaultFlagSet := NewDefaultFlagSetWithBase(flagSet)
+	defaultFlagSet.Bool("ok", false, "is this ok")
+	actual := defaultFlagSet.DefaultUsage()
+
+	assert.Equal(t, original, defaultFlagSet.set.Output())
+	assert.Equal(t, "", original.String())
+	assert.Equal(t, "  -ok\n    \tis this ok\n", actual)
 }
