@@ -39,6 +39,7 @@ func Test_HelpCommand(t *testing.T) {
 				"Commands",
 				"------------------",
 				"        ping:\tSimple ping pong command",
+				"       users:\tCommands for user management",
 				"",
 				"Usage",
 				"  -toUpper",
@@ -58,7 +59,8 @@ func Test_HelpCommand(t *testing.T) {
 				"",
 				"Commands",
 				"------------------",
-				"        ping:	Simple ping pong command",
+				"        ping:\tSimple ping pong command",
+				"       users:\tCommands for user management",
 				"",
 				"Usage",
 				"  -toUpper",
@@ -89,6 +91,48 @@ func Test_HelpCommand(t *testing.T) {
 				"",
 			},
 		},
+		{
+			name:  "help users",
+			input: []string{"help", "users"},
+			usage: "",
+			expected: []string{
+				"",
+				"Users",
+				"  Usage: users list|add|delete",
+				"  Commands for user management",
+				"",
+				"A series of commands to aid in user management",
+				"",
+				"",
+				"Commands",
+				"------------------",
+				"         add:	Add user",
+				"      delete:	Delete user",
+				"        list:	List users",
+				"",
+				"Usage",
+				"  -toUpper",
+				"    	state if the response should be uppercase",
+				"",
+			},
+		},
+		{
+			name:  "help users add",
+			input: []string{"help", "users", "add"},
+			usage: "",
+			expected: []string{
+				"",
+				"Add",
+				"  Usage: add email@example.com",
+				"  Add user",
+				"",
+				"Will add a new user", "", "",
+				"Usage",
+				"  -toUpper",
+				"    	state if the response should be uppercase",
+				"",
+			},
+		},
 	}
 
 	for _, test := range tests {
@@ -105,6 +149,7 @@ func Test_HelpCommand(t *testing.T) {
 				Name:        "Ping",
 				Summary:     "Simple ping pong command",
 				Description: "Simple command that will output the word pong",
+				Usage:       "ping",
 				Flags: func(fd flags.FlagDefiner) {
 					fd.String("suffix", "", "a suffix for the function response")
 				},
@@ -120,6 +165,35 @@ func Test_HelpCommand(t *testing.T) {
 					return nil
 				},
 			})
+			newShell.Handle("users", NewCommandRouter("Users", "Commands for user management", "A series of commands to aid in user management", "users list|add|delete", func(r shell.Router) {
+				r.Handle("list", &Command{
+					Name:        "List",
+					Summary:     "List users",
+					Description: "Will list all valid users",
+					Usage:       "list",
+					Function: func(rw shell.ResponseWriter, r *shell.Request) error {
+						return fmt.Errorf("list function called")
+					},
+				})
+				r.Handle("add", &Command{
+					Name:        "Add",
+					Summary:     "Add user",
+					Description: "Will add a new user",
+					Usage:       "add email@example.com",
+					Function: func(rw shell.ResponseWriter, r *shell.Request) error {
+						return fmt.Errorf("add function called")
+					},
+				})
+				r.Handle("delete", &Command{
+					Name:        "Delete",
+					Summary:     "Delete user",
+					Description: "Will delete an existing user",
+					Usage:       "delete email@example.com",
+					Function: func(rw shell.ResponseWriter, r *shell.Request) error {
+						return fmt.Errorf("delete function called")
+					},
+				})
+			}))
 			newShell.HandleFunction("secret", func(rw shell.ResponseWriter, r *shell.Request) error {
 				panic("this command should not be called.")
 			})

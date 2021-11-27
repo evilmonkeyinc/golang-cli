@@ -2,6 +2,7 @@ package commands
 
 import (
 	"fmt"
+	"sort"
 
 	"github.com/evilmonkeyinc/golang-cli/shell"
 )
@@ -11,6 +12,57 @@ type HelpCommand struct {
 	// The command string that should be used to call this function,
 	// used in the default function output
 	Usage string
+}
+
+func (command *HelpCommand) printCommandList(writer shell.ResponseWriter, commands map[string]CommandHandler) {
+	if len(commands) > 0 {
+
+		keys := make([]string, 0, len(commands))
+		for key := range commands {
+			keys = append(keys, key)
+		}
+		sort.Strings(keys)
+
+		fmt.Fprintln(writer, "\nCommands")
+		fmt.Fprintln(writer, "------------------")
+		for _, cmdName := range keys {
+			cmd := commands[cmdName]
+			fmt.Fprintf(writer, "%12s:\t%s\n", cmdName, cmd.GetSummary())
+		}
+	}
+}
+
+func (command *HelpCommand) printCommandHandlerDetails(writer shell.ResponseWriter, request *shell.Request, commandHandler CommandHandler, args []string) error {
+
+	commands := make(map[string]CommandHandler)
+	if routes, ok := commandHandler.(shell.Routes); ok {
+		for cmdName, handler := range routes.Routes() {
+			if cmd, ok := handler.(CommandHandler); ok {
+				commands[cmdName] = cmd
+			}
+		}
+	}
+
+	if len(args) > 0 {
+		if cmd, ok := commands[args[0]]; ok {
+			return command.printCommandHandlerDetails(writer, request, cmd, args[1:])
+		}
+	}
+
+	commandHandler.Define(request.FlagSet)
+	fmt.Fprintf(writer, "\n%s\n", commandHandler.GetName())
+	fmt.Fprintf(writer, "  Usage: %s\n", commandHandler.GetUsage())
+	fmt.Fprintf(writer, "  %s\n\n", commandHandler.GetSummary())
+	fmt.Fprintf(writer, "%s\n\n", commandHandler.GetDescription())
+
+	command.printCommandList(writer, commands)
+
+	if usage := request.FlagSet.DefaultUsage(); usage != "" {
+		fmt.Fprintln(writer, "\nUsage")
+		fmt.Fprintln(writer, usage)
+	}
+
+	return nil
 }
 
 // Execute will execute the help command
@@ -30,29 +82,13 @@ func (command *HelpCommand) Execute(writer shell.ResponseWriter, request *shell.
 
 	args := request.Args
 	if len(args) > 0 {
-		cmdName := args[0]
-		if cmd, ok := commands[cmdName]; ok {
-			cmd.Define(request.FlagSet)
-			fmt.Fprintf(writer, "\n%s\n", cmd.GetName())
-			fmt.Fprintf(writer, "  Usage: %s\n", cmdName)
-			fmt.Fprintf(writer, "  %s\n\n", cmd.GetSummary())
-			fmt.Fprintf(writer, "%s\n\n", cmd.GetDescription())
-
-			if usage := request.FlagSet.DefaultUsage(); usage != "" {
-				fmt.Fprintln(writer, "\nUsage")
-				fmt.Fprintln(writer, usage)
-			}
-
-			return nil
+		if cmd, ok := commands[args[0]]; ok {
+			return command.printCommandHandlerDetails(writer, request, cmd, args[1:])
 		}
 	}
 
 	fmt.Fprintf(writer, "\n%s: %s\n", command.Usage, fmt.Sprintf("%s or %s <command-name>", command.Usage, command.Usage))
-	fmt.Fprintln(writer, "\nCommands")
-	fmt.Fprintln(writer, "------------------")
-	for cmdName, cmd := range commands {
-		fmt.Fprintf(writer, "%12s:\t%s\n", cmdName, cmd.GetSummary())
-	}
+	command.printCommandList(writer, commands)
 
 	if usage := request.FlagSet.DefaultUsage(); usage != "" {
 		fmt.Fprintln(writer, "\nUsage")
