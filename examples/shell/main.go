@@ -8,6 +8,7 @@ import (
 	"syscall"
 
 	"github.com/evilmonkeyinc/golang-cli/commands"
+	"github.com/evilmonkeyinc/golang-cli/errors"
 	"github.com/evilmonkeyinc/golang-cli/middleware"
 	"github.com/evilmonkeyinc/golang-cli/shell"
 )
@@ -17,8 +18,15 @@ func main() {
 	defer cancel()
 
 	newShell := new(shell.Shell)
-	newShell.Options(shell.OptionShellPrompt("example>"))
+	newShell.Options(
+		shell.OptionShellPrompt("example>"),
+		shell.OptionExitOnError(true),
+		shell.OptionHelpHandler(&commands.HelpCommand{Usage: "help"}),
+	)
 	newShell.Use(middleware.Recoverer())
+	newShell.HandleFunction("help", func(shell.ResponseWriter, *shell.Request) error {
+		return errors.HelpRequested("command")
+	})
 	newShell.Handle("ping", &commands.Command{
 		Name:        "Ping",
 		Summary:     "Simple ping pong command",
@@ -31,10 +39,8 @@ func main() {
 	newShell.HandleFunction("secret", func(rw shell.ResponseWriter, r *shell.Request) error {
 		panic("this command should not be called.")
 	})
-	newShell.Handle("help", &commands.HelpCommand{})
 	newShell.HandleFunction("exit", func(rw shell.ResponseWriter, r *shell.Request) error {
-		os.Exit(1)
-		return nil
+		return fmt.Errorf("exit error")
 	})
 
 	go newShell.Start(ctx)
