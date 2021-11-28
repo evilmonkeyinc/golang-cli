@@ -110,7 +110,6 @@ func Test_Request_FlagValues(t *testing.T) {
 }
 
 func Test_Request_UpdateRequest(t *testing.T) {
-	// TODO : need to support args being changes and flagsets
 	type input struct {
 		selectedRoute string
 	}

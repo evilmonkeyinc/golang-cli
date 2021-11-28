@@ -221,3 +221,53 @@ func Test_OptionFlagSet(t *testing.T) {
 	})
 
 }
+
+func Test_OptionHelpHandler(t *testing.T) {
+
+	t.Run("invalid", func(t *testing.T) {
+		expected := errors.OptionIsInvalid("HelpHandler")
+		testPanic(t, func() {
+			OptionHelpHandler(nil)
+		}, expected.Error())
+	})
+
+	t.Run("not set", func(t *testing.T) {
+		handler := HandlerFunction(func(ResponseWriter, *Request) error {
+			return fmt.Errorf("expected")
+		})
+
+		option := OptionHelpHandler(handler)
+		shell := &Shell{}
+		err := option.Apply(shell)
+
+		handlerActual := handler.Execute(nil, nil)
+		shellActual := shell.helpHandler.Execute(nil, nil)
+
+		assert.Equal(t, handlerActual, shellActual)
+		assert.Nil(t, err)
+	})
+
+	t.Run("already set", func(t *testing.T) {
+		handler := HandlerFunction(func(ResponseWriter, *Request) error {
+			return fmt.Errorf("expected")
+		})
+
+		option := OptionHelpHandler(handler)
+		shell := &Shell{
+			helpHandler: HandlerFunction(func(ResponseWriter, *Request) error {
+				return fmt.Errorf("original")
+			}),
+		}
+		err := option.Apply(shell)
+
+		handlerActual := handler.Execute(nil, nil)
+		shellActual := shell.helpHandler.Execute(nil, nil)
+
+		assert.NotEqual(t, handlerActual, shellActual)
+		assert.NotNil(t, err)
+
+		expectedError := errors.OptionIsSet("HelpHandler")
+		assert.EqualValues(t, expectedError, err)
+	})
+
+}
