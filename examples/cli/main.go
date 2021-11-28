@@ -6,6 +6,7 @@ import (
 	"strings"
 
 	"github.com/evilmonkeyinc/golang-cli/commands"
+	"github.com/evilmonkeyinc/golang-cli/errors"
 	"github.com/evilmonkeyinc/golang-cli/flags"
 	"github.com/evilmonkeyinc/golang-cli/middleware"
 	"github.com/evilmonkeyinc/golang-cli/shell"
@@ -39,6 +40,7 @@ func main() {
 	}
 
 	newShell := new(shell.Shell)
+	newShell.Options(shell.OptionHelpHandler(&commands.HelpCommand{Usage: "help"}))
 	newShell.Flags(flags.FlagHandlerFunction(func(fd flags.FlagDefiner) {
 		fd.Bool("toUpper", false, "make the response uppercase")
 	}))
@@ -77,6 +79,8 @@ func main() {
 	newShell.HandleFunction("secret", func(rw shell.ResponseWriter, r *shell.Request) error {
 		panic("this command should not be called.")
 	})
-	newShell.Handle("help", &commands.HelpCommand{})
+	newShell.HandleFunction("help", func(shell.ResponseWriter, *shell.Request) error {
+		return errors.HelpRequested("help command")
+	})
 	newShell.Execute(ctx)
 }
