@@ -219,7 +219,6 @@ func Test_OptionFlagSet(t *testing.T) {
 		expectedError := errors.OptionIsSet("FlagSet")
 		assert.EqualValues(t, expectedError, err)
 	})
-
 }
 
 func Test_OptionHelpHandler(t *testing.T) {
@@ -270,4 +269,29 @@ func Test_OptionHelpHandler(t *testing.T) {
 		assert.EqualValues(t, expectedError, err)
 	})
 
+}
+
+func Test_OptionExitOnError(t *testing.T) {
+
+	t.Run("not set", func(t *testing.T) {
+		option := OptionExitOnError(true)
+		shell := &Shell{}
+		err := option.Apply(shell)
+
+		assert.Equal(t, true, shell.exitOnError)
+		assert.Nil(t, err)
+	})
+
+	t.Run("already set", func(t *testing.T) {
+
+		option := OptionExitOnError(false)
+		shell := &Shell{
+			exitOnError: true,
+		}
+		assert.Equal(t, true, shell.exitOnError)
+		err := option.Apply(shell)
+
+		assert.Equal(t, false, shell.exitOnError)
+		assert.Nil(t, err)
+	})
 }

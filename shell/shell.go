@@ -29,6 +29,7 @@ type Shell struct {
 	reader       io.Reader
 	router       Router
 	shellPrompt  string
+	exitOnError  bool
 }
 
 func (shell *Shell) setup() {
@@ -178,8 +179,10 @@ func (shell *Shell) Start(ctx context.Context) error {
 			err := shell.execute(ctx, strings.Split(input, " "))
 			if err != nil {
 				fmt.Fprintf(shell.errorWriter, "%v\n", err)
-				close(shell.closed)
-				return err // TODO : option to exit on error for shell
+				if shell.exitOnError {
+					close(shell.closed)
+					return err
+				}
 			}
 		}
 	}
