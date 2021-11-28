@@ -10,6 +10,7 @@ import (
 	"syscall"
 	"testing"
 
+	"github.com/evilmonkeyinc/golang-cli/errors"
 	"github.com/evilmonkeyinc/golang-cli/flags"
 	"github.com/stretchr/testify/assert"
 )
@@ -765,4 +766,34 @@ func Test_Shell_Start(t *testing.T) {
 
 		})
 	}
+}
+
+func Test_Shell_HelpFallback(t *testing.T) {
+
+	shell := &Shell{}
+	shell.Flags(flags.FlagHandlerFunction(func(fd flags.FlagDefiner) {
+		fd.Bool("toUpper", false, "")
+	}))
+	shell.HandleFunction("help", func(ResponseWriter, *Request) error {
+		return errors.HelpRequested("")
+	})
+
+	shell.helpHandler = HandlerFunction(func(ResponseWriter, *Request) error {
+		return fmt.Errorf("help handler was called")
+	})
+
+	t.Run("short help flag", func(t *testing.T) {
+		actual := shell.execute(context.Background(), []string{"-h", "ping"})
+		assert.EqualError(t, actual, "help handler was called")
+	})
+
+	t.Run("long help flag", func(t *testing.T) {
+		actual := shell.execute(context.Background(), []string{"-help", "ping"})
+		assert.EqualError(t, actual, "help handler was called")
+	})
+
+	t.Run("handler returning help", func(t *testing.T) {
+		actual := shell.execute(context.Background(), []string{"help", "ping"})
+		assert.EqualError(t, actual, "help handler was called")
+	})
 }

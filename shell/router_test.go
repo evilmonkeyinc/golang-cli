@@ -603,6 +603,15 @@ func Test_Router_Flags(t *testing.T) {
 				},
 			},
 		},
+		{
+			name: "-help",
+			input: input{
+				args: []string{"one", "-h"},
+			},
+			expected: expected{
+				err: errors.HelpRequested("flags"),
+			},
+		},
 	}
 
 	for _, test := range tests {

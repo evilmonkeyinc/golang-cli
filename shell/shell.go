@@ -8,6 +8,7 @@ import (
 	"os"
 	"strings"
 
+	"github.com/evilmonkeyinc/golang-cli/errors"
 	"github.com/evilmonkeyinc/golang-cli/flags"
 )
 
@@ -23,6 +24,7 @@ type Shell struct {
 	closed       chan struct{}
 	errorWriter  io.Writer
 	flagSet      flags.FlagSet
+	helpHandler  Handler
 	outputWriter io.Writer
 	reader       io.Reader
 	router       Router
@@ -62,13 +64,23 @@ func (shell *Shell) execute(ctx context.Context, args []string) error {
 		flagHandler.Define(flagSet)
 		var parseErr error = nil
 		if args, parseErr = flagSet.Parse(args); parseErr != nil {
-			// TODO : check for ErrHelp
+			if errors.IsHelpRequested(parseErr) && shell.helpHandler != nil {
+				request := NewRequestWithContext(ctx, []string{}, args, flagSet, shell.router)
+				return shell.helpHandler.Execute(writer, request)
+			}
 			fmt.Fprintln(writer.ErrorWriter(), parseErr.Error())
 		}
 	}
 
 	request := NewRequestWithContext(ctx, []string{}, args, flagSet, shell.router)
-	return shell.router.Execute(writer, request)
+	if err := shell.router.Execute(writer, request); err != nil {
+		if errors.IsHelpRequested(err) && shell.helpHandler != nil {
+			return shell.helpHandler.Execute(writer, request)
+		}
+		return err
+	}
+
+	return nil
 }
 
 // Options will apply the supplied options to the shell.

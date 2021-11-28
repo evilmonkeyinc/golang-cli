@@ -130,3 +130,27 @@ func (option *flagSetOption) Apply(shell *Shell) error {
 	shell.flagSet = option.flagSet
 	return nil
 }
+
+// OptionHelpHandler shell option allows the user to set the HelpHandler used by the shell.
+//
+// The HelpHandler will be executed whenever a handler returns the HelpRequested error.
+func OptionHelpHandler(handler Handler) Option {
+	if handler == nil {
+		panic(errors.OptionIsInvalid("HelpHandler"))
+	}
+	return &helpHandlerOption{
+		handler: handler,
+	}
+}
+
+type helpHandlerOption struct {
+	handler Handler
+}
+
+func (option *helpHandlerOption) Apply(shell *Shell) error {
+	if shell.helpHandler != nil {
+		return errors.OptionIsSet("HelpHandler")
+	}
+	shell.helpHandler = option.handler
+	return nil
+}

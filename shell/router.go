@@ -108,7 +108,9 @@ func (rtr *StandardRouter) Execute(writer ResponseWriter, request *Request) erro
 		}
 		var parseErr error = nil
 		if args, parseErr = flagSet.Parse(args[1:]); parseErr != nil {
-			// TODO : check for ErrHelp
+			if errors.IsHelpRequested(parseErr) {
+				return parseErr
+			}
 			fmt.Fprintln(writer.ErrorWriter(), parseErr.Error())
 		}
 		request = request.UpdateRequest(currentRoute, args, flagSet, rtr)
