@@ -154,3 +154,21 @@ func (option *helpHandlerOption) Apply(shell *Shell) error {
 	shell.helpHandler = option.handler
 	return nil
 }
+
+// OptionExitOnError shell options allows the user to determine the shell behaviour.
+//
+// When true, the shell will exit when a handler returns an error.
+func OptionExitOnError(exitOnError bool) Option {
+	return &exitOnErrorOption{
+		exitOnError: exitOnError,
+	}
+}
+
+type exitOnErrorOption struct {
+	exitOnError bool
+}
+
+func (option *exitOnErrorOption) Apply(shell *Shell) error {
+	shell.exitOnError = option.exitOnError
+	return nil
+}

@@ -726,6 +726,7 @@ func Test_Shell_Start(t *testing.T) {
 				reader:       testReader,
 				outputWriter: testOutputWriter,
 				errorWriter:  testErrorWriter,
+				exitOnError:  true,
 			}
 			shell.HandleFunction("exit", func(rw ResponseWriter, r *Request) error {
 				args := r.Args
@@ -762,10 +763,126 @@ func Test_Shell_Start(t *testing.T) {
 				<-shell.Closed()
 			case <-shell.Closed():
 				cancel()
+			case <-ctx.Done():
+				<-shell.Closed()
 			}
 
 		})
 	}
+}
+
+func Test_Shell_ExitOnError(t *testing.T) {
+
+	t.Run("default", func(t *testing.T) {
+		ctx, cancel := context.WithCancel(context.Background())
+		testReader := strings.NewReader("error\nexit\n")
+		testOutputWriter := &bytes.Buffer{}
+		testErrorWriter := &bytes.Buffer{}
+
+		shell := &Shell{
+			reader:       testReader,
+			errorWriter:  testErrorWriter,
+			outputWriter: testOutputWriter,
+		}
+		shell.HandleFunction("error", func(rw ResponseWriter, r *Request) error {
+			return fmt.Errorf("error response")
+		})
+		shell.HandleFunction("exit", func(rw ResponseWriter, r *Request) error {
+			cancel()
+			return nil
+		})
+
+		go func() {
+			os.Args = []string{}
+			err := shell.Start(ctx)
+			assert.Nil(t, err)
+		}()
+
+		signals := make(chan os.Signal, 1)
+		signal.Notify(signals, syscall.SIGINT, syscall.SIGTERM)
+		select {
+		case <-signals:
+			cancel()
+			<-shell.Closed()
+		case <-shell.Closed():
+			cancel()
+		}
+	})
+
+	t.Run("false", func(t *testing.T) {
+		ctx, cancel := context.WithCancel(context.Background())
+		testReader := strings.NewReader("error\nexit\n")
+		testOutputWriter := &bytes.Buffer{}
+		testErrorWriter := &bytes.Buffer{}
+
+		shell := &Shell{
+			reader:       testReader,
+			errorWriter:  testErrorWriter,
+			outputWriter: testOutputWriter,
+			exitOnError:  false,
+		}
+		shell.HandleFunction("error", func(rw ResponseWriter, r *Request) error {
+			return fmt.Errorf("error response")
+		})
+		shell.HandleFunction("exit", func(rw ResponseWriter, r *Request) error {
+			cancel()
+			return nil
+		})
+
+		go func() {
+			os.Args = []string{}
+			err := shell.Start(ctx)
+			assert.Nil(t, err)
+		}()
+
+		signals := make(chan os.Signal, 1)
+		signal.Notify(signals, syscall.SIGINT, syscall.SIGTERM)
+		select {
+		case <-signals:
+			cancel()
+			<-shell.Closed()
+		case <-shell.Closed():
+			cancel()
+		}
+	})
+
+	t.Run("true", func(t *testing.T) {
+		ctx, cancel := context.WithCancel(context.Background())
+		testReader := strings.NewReader("error\nexit\n")
+		testOutputWriter := &bytes.Buffer{}
+		testErrorWriter := &bytes.Buffer{}
+
+		shell := &Shell{
+			reader:       testReader,
+			errorWriter:  testErrorWriter,
+			outputWriter: testOutputWriter,
+			exitOnError:  true,
+		}
+		shell.HandleFunction("error", func(rw ResponseWriter, r *Request) error {
+			return fmt.Errorf("error response")
+		})
+		shell.HandleFunction("exit", func(rw ResponseWriter, r *Request) error {
+			cancel()
+			return nil
+		})
+
+		go func() {
+			os.Args = []string{}
+			err := shell.Start(ctx)
+			assert.NotNil(t, err)
+			assert.Error(t, err, "error response")
+		}()
+
+		signals := make(chan os.Signal, 1)
+		signal.Notify(signals, syscall.SIGINT, syscall.SIGTERM)
+		select {
+		case <-signals:
+			cancel()
+			<-shell.Closed()
+		case <-shell.Closed():
+			cancel()
+		}
+	})
 }
 
 func Test_Shell_HelpFallback(t *testing.T) {
