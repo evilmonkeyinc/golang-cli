@@ -82,6 +82,12 @@ func (command *HelpCommand) Execute(writer shell.ResponseWriter, request *shell.
 
 	args := request.Args
 	if len(args) > 0 {
+		if args[0] == command.Usage && len(args) > 1 {
+			// if first arg is "help" then we ignore that,
+			// this lets us support any command returning
+			// HelpRequested, even the help command
+			args = args[1:]
+		}
 		if cmd, ok := commands[args[0]]; ok {
 			return command.printCommandHandlerDetails(writer, request, cmd, args[1:])
 		}

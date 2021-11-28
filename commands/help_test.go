@@ -8,6 +8,7 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/evilmonkeyinc/golang-cli/errors"
 	"github.com/evilmonkeyinc/golang-cli/flags"
 	"github.com/evilmonkeyinc/golang-cli/middleware"
 	"github.com/evilmonkeyinc/golang-cli/shell"
@@ -205,5 +206,155 @@ func Test_HelpCommand(t *testing.T) {
 			assert.Equal(t, strings.Join(test.expected, "\n")+"\n", testWriter.String())
 		})
 	}
+}
 
+func Test_HelpCommandOption(t *testing.T) {
+
+	tests := []struct {
+		name     string
+		input    []string
+		expected []string
+	}{
+		{
+			name:     "base",
+			input:    []string{"ping"},
+			expected: []string{"pong"},
+		},
+		{
+			name:  "command",
+			input: []string{"help"},
+			expected: []string{
+				"",
+				"help: help or help <command-name>",
+				"",
+				"Commands",
+				"------------------",
+				"        ping:\tPing/Pong",
+				"",
+				"Use \"help <command-name>\" for detail about the specified command",
+			},
+		},
+		{
+			name:  "flag",
+			input: []string{"-help"},
+			expected: []string{
+				"",
+				"help: help or help <command-name>",
+				"",
+				"Commands",
+				"------------------",
+				"        ping:\tPing/Pong",
+				"",
+				"Use \"help <command-name>\" for detail about the specified command",
+			},
+		},
+		{
+			name:  "help ping",
+			input: []string{"help", "ping"},
+			expected: []string{
+				"",
+				"Ping",
+				"  Usage: ping",
+				"  Ping/Pong",
+				"",
+				"This is the description string",
+				"",
+				"",
+				"Usage",
+				"  -deprecated",
+				"    	do not use this flag",
+				"",
+			},
+		},
+		{
+			name:  "flag after",
+			input: []string{"ping", "-h"},
+			expected: []string{
+				"",
+				"Ping",
+				"  Usage: ping",
+				"  Ping/Pong",
+				"",
+				"This is the description string",
+				"",
+				"",
+				"Usage",
+				"  -deprecated",
+				"    	do not use this flag",
+				"",
+			},
+		},
+		{
+			name:  "flag before",
+			input: []string{"-h", "ping"},
+			expected: []string{
+				"",
+				"Ping",
+				"  Usage: ping",
+				"  Ping/Pong",
+				"",
+				"This is the description string",
+				"",
+				"",
+				"Usage",
+				"  -deprecated",
+				"    	do not use this flag",
+				"",
+			},
+		},
+		{
+			name:  "ping requests help",
+			input: []string{"ping", "-deprecated"},
+			expected: []string{
+				"",
+				"Ping",
+				"  Usage: ping",
+				"  Ping/Pong",
+				"",
+				"This is the description string",
+				"",
+				"",
+				"Usage",
+				"  -deprecated",
+				"    	do not use this flag",
+				"",
+			},
+		},
+	}
+
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+
+			testWriter := &bytes.Buffer{}
+			newShell := &shell.Shell{}
+			newShell.Options(
+				shell.OptionOutputWriter(testWriter),
+				shell.OptionHelpHandler(&HelpCommand{Usage: "help"}),
+			)
+			newShell.HandleFunction("help", func(shell.ResponseWriter, *shell.Request) error {
+				return errors.HelpRequested("help function")
+			})
+			newShell.Handle("ping", &Command{
+				Name:        "Ping",
+				Summary:     "Ping/Pong",
+				Description: "This is the description string",
+				Usage:       "ping",
+				Flags: func(fd flags.FlagDefiner) {
+					fd.Bool("deprecated", false, "do not use this flag")
+				},
+				Function: func(rw shell.ResponseWriter, r *shell.Request) error {
+					if deprecated, _ := r.FlagSet.GetBool("deprecated"); deprecated {
+						return errors.HelpRequested("bad flag")
+					}
+					_, err := fmt.Fprintln(rw, "pong")
+					return err
+				},
+			})
+
+			os.Args = append([]string{"cmd"}, test.input...)
+			err := newShell.Execute(context.Background())
+			assert.Nil(t, err)
+			assert.Equal(t, strings.Join(test.expected, "\n")+"\n", testWriter.String())
+		})
+	}
 }
