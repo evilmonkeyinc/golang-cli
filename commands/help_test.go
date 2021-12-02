@@ -56,8 +56,6 @@ func Test_HelpCommand(t *testing.T) {
 			usage: "",
 			expected: []string{
 				"",
-				"help: help or help <command-name>",
-				"",
 				"Commands",
 				"------------------",
 				"        ping:\tSimple ping pong command",
@@ -67,8 +65,6 @@ func Test_HelpCommand(t *testing.T) {
 				"  -toUpper",
 				"    \tstate if the response should be uppercase",
 				"",
-				"",
-				"Use \"help <command-name>\" for detail about the specified command",
 			},
 		},
 		{
