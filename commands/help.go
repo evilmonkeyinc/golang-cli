@@ -9,8 +9,11 @@ import (
 
 // HelpCommand allows for basic output of command metadata.
 type HelpCommand struct {
-	// The command string that should be used to call this function,
-	// used in the default function output
+	// The command string that could be used to execute the help command
+	// and display a usage example as part of the help command output.
+	//
+	// If the intention is to only use the help flags, then this could
+	// be left empty to omit the usage example.
 	Usage string
 }
 
@@ -69,10 +72,6 @@ func (command *HelpCommand) printCommandHandlerDetails(writer shell.ResponseWrit
 func (command *HelpCommand) Execute(writer shell.ResponseWriter, request *shell.Request) error {
 	routes := request.Routes
 
-	if command.Usage == "" && len(request.Path) > 0 {
-		command.Usage = request.Path[len(request.Path)-1]
-	}
-
 	commands := make(map[string]CommandHandler)
 	for cmdName, handler := range routes.Routes() {
 		if cmd, ok := handler.(CommandHandler); ok {
@@ -93,7 +92,9 @@ func (command *HelpCommand) Execute(writer shell.ResponseWriter, request *shell.
 		}
 	}
 
-	fmt.Fprintf(writer, "\n%s: %s\n", command.Usage, fmt.Sprintf("%s or %s <command-name>", command.Usage, command.Usage))
+	if command.Usage != "" {
+		fmt.Fprintf(writer, "\n%s: %s\n", command.Usage, fmt.Sprintf("%s or %s <command-name>", command.Usage, command.Usage))
+	}
 	command.printCommandList(writer, commands)
 
 	if usage := request.FlagSet.DefaultUsage(); usage != "" {
@@ -101,7 +102,9 @@ func (command *HelpCommand) Execute(writer shell.ResponseWriter, request *shell.
 		fmt.Fprintln(writer, usage)
 	}
 
-	fmt.Fprintf(writer, "\nUse \"%s <command-name>\" for detail about the specified command\n", command.Usage)
+	if command.Usage != "" {
+		fmt.Fprintf(writer, "\nUse \"%s <command-name>\" for detail about the specified command\n", command.Usage)
+	}
 
 	return nil
 }
